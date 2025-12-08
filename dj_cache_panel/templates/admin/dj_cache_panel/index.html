@@ -1,0 +1,64 @@
+{% extends "admin/dj_cache_panel/base.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block content %}
+<div class="module">
+    {% if caches %}
+    <h2>{% trans 'Cache Instances' %}</h2>
+    <br>
+    <div class="results">
+        <table id="result_list">
+            <thead>
+                <tr>
+                    <th>Cache Name</th>
+                    <th>Backend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cache_name, cache_config in caches.items %}
+                <tr>
+                    <td>{{ cache_name }}</td>
+                    <td>{{ cache_config.BACKEND }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+    </div>
+    {% else %}
+    <div class="aligned">
+        <fieldset class="module">
+            <h2>{% trans 'Cache Configuration Required' %}</h2>
+            
+            <div class="form-row">
+                <div class="help-text">
+                    <p>{% trans 'To use the Cache panel, you must configure cache instances in your Django settings.' %}</p>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <h3>{% trans 'Please add a configuration dictionary to your settings.py like the example below:' %}</h3>
+                <fieldset class="collapse">
+                    <div class="form-row">
+                        <textarea readonly rows="25" class="vLargeTextField" style="font-family: monospace; width: 100%;">
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}
+</textarea>
+                    </div>
+                </fieldset>
+            </div>
+
+            
+
+            <div class="form-row">
+                <div class="help-text">
+                    <p><strong>{% trans 'After adding the configuration, restart your Django server to see your Cache instances.' %}</strong></p>
+                </div>
+            </div>
+        </fieldset>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

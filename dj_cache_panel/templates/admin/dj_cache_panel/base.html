@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block title %}{{ title }} | DJ Cache Panel{% endblock %}
+
+{% block extrahead %}
+<style type="text/css">
+    {% include "admin/dj_cache_panel/styles.css" %}
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'dj_cache_panel:index' %}">DJ Cache Panel</a></h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+{% endblock %}
