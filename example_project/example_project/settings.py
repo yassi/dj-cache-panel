@@ -127,12 +127,45 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CACHES = {
+    # Default cache for local development/testing (in-memory, single process)
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
-    }
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",  # Optional: names the memory store if using multiple locmem caches
+    },
+    "dummy": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    },
+    # Database caching (requires running 'python manage.py createcachetable my_cache_table')
+    "database": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "my_cache_table",  # Name of the database table to use for caching
+    },
+    # Filesystem caching (requires directory to be readable/writable by the web server user)
+    "filesystem": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": "/var/tmp/django_cache",  # Absolute path to the cache directory
+        "TIMEOUT": 60,  # Optional: default timeout in seconds (defaults to 300)
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000  # Optional: max number of entries before culling starts
+        },
+    },
+    # Now external service based caches. please use docker compose to bring up these services locally for testing.
+    "memcached": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",  # Or a list/string of multiple servers for distributed caching
+    },
+    "redis": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/0",  # URL notation; username/password can be included
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    },
+    # Custom backend, technically possible but testing is beyond the scope of this project.
+    # "custom": {
+    #     "BACKEND": "mypackage.backends.whatever.WhateverCache",
+    # },
 }
-
 
 # Simple Console Logging Configuration
 LOGGING = {

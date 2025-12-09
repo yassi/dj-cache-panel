@@ -1,6 +1,8 @@
 # core dependencies
 Django>=4.2
 redis>=4.0
+pymemcache>=4.0.0
+django-redis>=5.0.0
 
 # Testing dependencies for Django Redis Panel
 pytest>=7.0.0

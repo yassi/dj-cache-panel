@@ -7,5 +7,6 @@ from django.conf import settings
 def index(request):
     context = {
         "caches": settings.CACHES,
+        "title": "DJ Cache Panel - Instances",
     }
     return render(request, "admin/dj_cache_panel/index.html", context)

@@ -44,6 +44,9 @@ dev = [
     "pytest-django>=4.5.0",
     "pytest-cov>=4.0.0",
     "pytest-xdist>=3.2.0",
+    "pymemcache>=4.0.0",
+    "django-redis>=5.0.0",
+    "mkdocs-material>=9.1.12",
 ]
 build = [
     "build>=1.0.0",
