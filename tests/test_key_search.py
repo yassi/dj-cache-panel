@@ -3,6 +3,8 @@ Tests for the key search functionality in Django Cache Panel.
 
 These tests verify the key search view behavior from end to end,
 ensuring the full request/response cycle works correctly.
+
+Tests are run against multiple cache backends to ensure compatibility.
 """
 
 from django.core.cache import caches
@@ -12,113 +14,146 @@ from .base import CacheTestCase
 
 
 class TestKeySearchView(CacheTestCase):
-    """Test cases for key search view."""
+    """Test cases for key search view across all cache backends."""
 
     def test_key_search_view_loads(self):
-        """Test that the key search view loads for a valid cache."""
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url)
+        """Test that the key search view loads for all cache backends."""
+        for cache_name in self.QUERY_SUPPORTED_CACHES + self.NON_QUERY_CACHES:
+            with self.subTest(cache=cache_name):
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "default")
-        self.assertContains(response, "Search Keys")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, cache_name)
+                self.assertContains(response, "Search Keys")
 
     def test_key_search_shows_cache_backend(self):
-        """Test that the key search view shows the cache backend."""
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url)
+        """Test that the key search view shows the cache backend type."""
+        backend_names = {
+            "default": "LocMemCache",
+            "secondary": "LocMemCache",
+            "database": "DatabaseCache",
+            "dummy": "DummyCache",
+        }
+        for cache_name, backend_name in backend_names.items():
+            with self.subTest(cache=cache_name):
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url)
 
-        self.assertContains(response, "LocMemCache")
+                self.assertContains(response, backend_name)
 
     def test_key_search_lists_all_keys_with_empty_query(self):
-        """Test that searching with no query lists all keys."""
-        cache = caches["default"]
-        cache.set("key1", "value1")
-        cache.set("key2", "value2")
-        cache.set("key3", "value3")
+        """Test that searching with no query lists all keys (for query-supported caches)."""
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                cache.set("key1", "value1")
+                cache.set("key2", "value2")
+                cache.set("key3", "value3")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": ""})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url, {"q": ""})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "key1")
-        self.assertContains(response, "key2")
-        self.assertContains(response, "key3")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "key1")
+                self.assertContains(response, "key2")
+                self.assertContains(response, "key3")
 
     def test_key_search_with_wildcard_pattern(self):
-        """Test searching for keys with a wildcard pattern."""
-        cache = caches["default"]
-        cache.set("test:key1", "value1")
-        cache.set("test:key2", "value2")
-        cache.set("other:key", "value3")
+        """Test searching for keys with a wildcard pattern across all query-supported caches."""
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                cache.set("test:key1", "value1")
+                cache.set("test:key2", "value2")
+                cache.set("other:key", "value3")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "test:*"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url, {"q": "test:*"})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "test:key1")
-        self.assertContains(response, "test:key2")
-        self.assertNotContains(response, "other:key")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "test:key1")
+                self.assertContains(response, "test:key2")
+                self.assertNotContains(response, "other:key")
 
     def test_key_search_exact_match(self):
-        """Test exact key lookup shows the key and value."""
-        cache = caches["default"]
-        cache.set("exact:match:key", "exact_value")
+        """Test exact key lookup shows the key and value across all caches."""
+        for cache_name in self.QUERY_SUPPORTED_CACHES + self.NON_QUERY_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                cache.set("exact:match:key", "exact_value")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "exact:match:key"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url, {"q": "exact:match:key"})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "exact:match:key")
-        self.assertContains(response, "exact_value")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "exact:match:key")
+                if cache_name not in self.NON_QUERY_CACHES:
+                    # Dummy cache doesn't actually store values
+                    self.assertContains(response, "exact_value")
 
     def test_key_search_no_results(self):
         """Test that searching for non-existent keys shows no results message."""
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "nonexistent:key:pattern:*"})
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url, {"q": "nonexistent:key:pattern:*"})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No keys found")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "No keys found")
 
     def test_key_search_pagination(self):
         """Test that pagination works when there are many keys."""
-        cache = caches["default"]
-        # Create more keys than per_page default
-        for i in range(30):
-            cache.set(f"paginate:key{i:02d}", f"value{i}")
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                # Create more keys than per_page default
+                for i in range(30):
+                    cache.set(f"paginate{cache_name}:key{i:02d}", f"value{i}")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "paginate:*", "per_page": "10"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(
+                    url, {"q": f"paginate{cache_name}:*", "per_page": "10"}
+                )
 
-        self.assertEqual(response.status_code, 200)
-        # Should show pagination info
-        self.assertContains(response, "Found 30 keys")
-        # Should have next page link
-        self.assertContains(response, "next")
+                self.assertEqual(response.status_code, 200)
+                # Should show pagination info
+                self.assertContains(response, "Found 30 keys")
+                # Should have next page link
+                self.assertContains(response, "next")
 
     def test_key_search_pagination_page_2(self):
         """Test navigating to page 2 of results."""
-        cache = caches["default"]
-        for i in range(30):
-            cache.set(f"page:key{i:02d}", f"value{i}")
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                for i in range(30):
+                    cache.set(f"page{cache_name}:key{i:02d}", f"value{i}")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "page:*", "per_page": "10", "page": "2"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(
+                    url,
+                    {"q": f"page{cache_name}:*", "per_page": "10", "page": "2"},
+                )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "showing 11 to 20")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "showing 11 to 20")
 
     def test_key_search_per_page_option(self):
         """Test that per_page option is respected."""
-        cache = caches["default"]
-        for i in range(50):
-            cache.set(f"perpage:key{i:02d}", f"value{i}")
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                for i in range(50):
+                    cache.set(f"perpage{cache_name}:key{i:02d}", f"value{i}")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "perpage:*", "per_page": "25"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(
+                    url, {"q": f"perpage{cache_name}:*", "per_page": "25"}
+                )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "showing 1 to 25")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "showing 1 to 25")
 
     def test_key_search_unauthenticated(self):
         """Test that unauthenticated users cannot access key search."""
@@ -132,14 +167,29 @@ class TestKeySearchView(CacheTestCase):
 
     def test_key_search_shows_value_preview(self):
         """Test that the search results show a value preview."""
-        cache = caches["default"]
-        cache.set("preview:key", "This is a test value for preview")
+        for cache_name in self.QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                cache.set("preview:key", "This is a test value for preview")
 
-        url = reverse("dj_cache_panel:key_search", args=["default"])
-        response = self.client.get(url, {"q": "preview:*"})
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url, {"q": "preview:*"})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "This is a test value for preview")
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "This is a test value for preview")
+
+    def test_key_search_non_query_cache_shows_message(self):
+        """Test that non-query caches show appropriate messaging."""
+        for cache_name in self.NON_QUERY_CACHES:
+            with self.subTest(cache=cache_name):
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(url)
+
+                self.assertEqual(response.status_code, 200)
+                # Should show message about key listing not being supported
+                self.assertContains(response, "Key listing is not supported")
+                # Should still show exact match input
+                self.assertContains(response, "Exact match only")
 
 
 class TestIndexView(CacheTestCase):

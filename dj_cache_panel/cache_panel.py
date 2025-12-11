@@ -247,43 +247,121 @@ class LocalMemoryCachePanel(CachePanel):
         return self.cache.get(key, sentinel) is not sentinel
 
 
-class RedisCachePanel(CachePanel):
-    """
-    Implements the cache panel for the redis cache backend.
-    """
-
-    ABILITIES = {
-        "query": False,
-        "get_key": True,
-        "delete_key": True,
-        "flush_cache": True,
-    }
-
-
-class MemcachedCachePanel(CachePanel):
-    """
-    Implements the cache panel for the memcached cache backend.
-    """
-
-    ABILITIES = {
-        "query": False,
-        "get_key": True,
-        "delete_key": True,
-        "flush_cache": True,
-    }
-
-
 class DatabaseCachePanel(CachePanel):
     """
     Implements the cache panel for the database cache backend.
+
+    The Django database cache backend stores cache entries in a database table
+    with columns: cache_key, value, expires.
     """
 
     ABILITIES = {
-        "query": False,
+        "query": True,
         "get_key": True,
         "delete_key": True,
         "flush_cache": True,
     }
+
+    def _get_table_name(self):
+        """
+        Get the database table name for this cache.
+        """
+        return self.cache._table
+
+    def _wildcard_to_sql_like(self, pattern: str):
+        """
+        Convert a wildcard pattern (e.g., 'test:*') to SQL LIKE pattern (e.g., 'test:%').
+        Also escapes SQL special characters.
+        """
+        # Replace * with % for SQL LIKE
+        sql_pattern = pattern.replace("*", "%").replace("?", "_")
+        return sql_pattern
+
+    def _scan_keys(
+        self,
+        pattern: str = "*",
+        page: int = 1,
+        per_page: int = 25,
+        scan_count: int = 100,
+    ):
+        """
+        Scan the database cache for keys matching the pattern.
+
+        Uses raw SQL to query the cache table directly since Django's cache
+        backend doesn't provide a model with proper field names.
+
+        Note: Django's database cache backend applies a key prefix using the
+        make_key() method, so raw keys are transformed before storage.
+        """
+        from django.db import connection
+        import time
+
+        table_name = self._get_table_name()
+
+        # Convert wildcard pattern to SQL LIKE pattern
+        # Django's cache backend will transform keys using make_key(),
+        # which adds version and key_prefix, so we need to match the transformed keys
+        if pattern and pattern != "*":
+            # Transform the pattern using the cache's make_key to match stored keys
+            # For simple patterns, we'll do a substring match
+            transformed_pattern = self.cache.make_key(pattern)
+            # Replace the pattern's * with % for SQL LIKE
+            sql_pattern = transformed_pattern.replace("*", "%").replace("?", "_")
+        else:
+            sql_pattern = "%"
+
+        # Get current time as Unix timestamp
+        # The database cache backend stores expires as a decimal/float timestamp
+        current_time = time.time()
+
+        # Query for keys that match the pattern and haven't expired
+        with connection.cursor() as cursor:
+            # Count total matching keys that haven't expired
+            count_sql = f"""
+                SELECT COUNT(*) 
+                FROM {table_name} 
+                WHERE cache_key LIKE %s AND expires > %s
+            """
+            cursor.execute(count_sql, [sql_pattern, current_time])
+            total_count = cursor.fetchone()[0]
+
+            # Get paginated keys
+            start_idx = (page - 1) * per_page
+            keys_sql = f"""
+                SELECT cache_key 
+                FROM {table_name}
+                WHERE cache_key LIKE %s AND expires > %s
+                ORDER BY cache_key
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(keys_sql, [sql_pattern, current_time, per_page, start_idx])
+            # Transform back from cache_key to the user-facing key
+            raw_keys = [row[0] for row in cursor.fetchall()]
+
+            # Reverse the make_key transformation to get original keys
+            keys = []
+            for cache_key in raw_keys:
+                # The reverse transformation: remove version and key_prefix
+                original_key = self.cache.key_prefix
+                if cache_key.startswith(self.cache.key_prefix):
+                    # Remove the prefix to get back to the original key
+                    key_without_prefix = cache_key[len(self.cache.key_prefix) :]
+                    # Remove version prefix (format is :VERSION:key)
+                    parts = key_without_prefix.split(":", 2)
+                    if len(parts) >= 3:
+                        original_key = parts[2]
+                    else:
+                        original_key = key_without_prefix
+                    keys.append(original_key)
+                else:
+                    keys.append(cache_key)
+
+        return {
+            "keys": keys,
+            "total_count": total_count,
+            "page": page,
+            "per_page": per_page,
+        }
 
 
 class FileBasedCachePanel(CachePanel):
@@ -325,4 +403,30 @@ class GenericCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "flush_cache": False,
+    }
+
+
+class RedisCachePanel(CachePanel):
+    """
+    Implements the cache panel for the redis cache backend.
+    """
+
+    ABILITIES = {
+        "query": False,
+        "get_key": True,
+        "delete_key": True,
+        "flush_cache": True,
+    }
+
+
+class MemcachedCachePanel(CachePanel):
+    """
+    Implements the cache panel for the memcached cache backend.
+    """
+
+    ABILITIES = {
+        "query": False,
+        "get_key": True,
+        "delete_key": True,
+        "flush_cache": True,
     }
