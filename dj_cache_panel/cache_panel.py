@@ -1,10 +1,12 @@
 import fnmatch
+import time
+from django.db import connection
 from django.conf import settings
 from django.core.cache import caches
 
 
-# Mapping of backend class paths to panel classes
-BACKEND_PANEL_MAP = {
+# Default Mapping of backend class paths to panel classes
+BACKEND_PANEL_MAP_DEFAULT = {
     # Local memory cache
     "django.core.cache.backends.locmem.LocMemCache": "LocalMemoryCachePanel",
     # Redis backends
@@ -21,6 +23,10 @@ BACKEND_PANEL_MAP = {
     # Dummy cache
     "django.core.cache.backends.dummy.DummyCache": "DummyCachePanel",
 }
+
+BACKEND_PANEL_MAP = getattr(
+    settings, "DJ_CACHE_PANEL_BACKEND_PANEL_MAP", BACKEND_PANEL_MAP_DEFAULT
+)
 
 
 def get_cache_panel(cache_name: str):
@@ -293,9 +299,6 @@ class DatabaseCachePanel(CachePanel):
         Note: Django's database cache backend applies a key prefix using the
         make_key() method, so raw keys are transformed before storage.
         """
-        from django.db import connection
-        import time
-
         table_name = self._get_table_name()
 
         # Convert wildcard pattern to SQL LIKE pattern
@@ -367,10 +370,15 @@ class DatabaseCachePanel(CachePanel):
 class FileBasedCachePanel(CachePanel):
     """
     Implements the cache panel for the file based cache backend.
+
+    Note: Django's file-based cache stores keys as hashed filenames
+    (e.g., '4a50768ddcc707351283f01376588f38.djcache'), making it
+    impossible to list original key names without the keys themselves.
+    Therefore, query support is disabled for this backend.
     """
 
     ABILITIES = {
-        "query": False,
+        "query": False,  # Cannot list keys - they're stored as hashed filenames
         "get_key": True,
         "delete_key": True,
         "flush_cache": True,
@@ -406,9 +414,9 @@ class GenericCachePanel(CachePanel):
     }
 
 
-class RedisCachePanel(CachePanel):
+class MemcachedCachePanel(CachePanel):
     """
-    Implements the cache panel for the redis cache backend.
+    Implements the cache panel for the memcached cache backend.
     """
 
     ABILITIES = {
@@ -419,9 +427,9 @@ class RedisCachePanel(CachePanel):
     }
 
 
-class MemcachedCachePanel(CachePanel):
+class RedisCachePanel(CachePanel):
     """
-    Implements the cache panel for the memcached cache backend.
+    Implements the cache panel for the redis cache backend.
     """
 
     ABILITIES = {
