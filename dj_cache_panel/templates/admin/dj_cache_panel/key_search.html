@@ -1,0 +1,157 @@
+{% extends "admin/dj_cache_panel/base.html" %}
+{% load i18n admin_urls static %}
+
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'dj_cache_panel:index' %}">{% trans 'Cache Instances' %}</a>
+    &rsaquo; {{ cache_name }}
+</div>
+{% endblock %}
+
+
+{% block content %}
+<div class="module key-search">
+    
+    <!-- Cache Info Header -->
+    <div class="module">
+        <h2>{{ cache_name }}</h2>
+        <p class="help">
+            {% trans 'Backend:' %} <code>{{ cache_config.BACKEND }}</code>
+        </p>
+    </div>
+
+    {% if error_message %}
+    <div class="messagelist">
+        <div class="error">{{ error_message }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Query Not Supported Message -->
+    {% if not query_supported %}
+    <div class="module">
+        <div class="messagelist">
+            <div class="warning" style="background: #ffc; padding: 10px; border-left: 4px solid #fc0;">
+                <strong>{% trans 'Key Listing Not Available' %}</strong>
+                <p style="margin: 5px 0 0 0;">
+                    {% trans 'This cache backend does not support listing all keys. You can still perform exact key lookups using the search box below.' %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search Form -->
+    <div class="module">
+        <h2>{% trans 'Search Keys' %}</h2>
+        <br>
+        <form method="get" class="search-form">
+            <div class="form-row search-form-row">
+                <div class="search-form-fields" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="search-field-group">
+                        <label for="q">{% trans 'Key:' %}</label>
+                        <input type="text" id="q" name="q" value="{{ search_query }}" 
+                               placeholder="{% if query_supported %}*{% else %}{% trans 'Enter exact key name' %}{% endif %}" 
+                               class="vTextField" style="width: 300px;">
+                    </div>
+                    {% if query_supported %}
+                    <div class="search-field-group">
+                        <label for="per_page">{% trans 'Per page:' %}</label>
+                        <select id="per_page" name="per_page" class="vTextField">
+                            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="search-field-group">
+                        <label>&nbsp;</label>
+                        <input type="submit" value="{% trans 'Search' %}" class="default">
+                    </div>
+                </div>
+                <div class="search-help" style="margin-top: 10px;">
+                    {% if query_supported %}
+                    <div class="help">{% trans 'Use * for wildcards, e.g., user:* or *:cache. Leave empty or use * to list all keys.' %}</div>
+                    {% else %}
+                    <div class="help">{% trans 'Enter the exact key name to look up its value.' %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results -->
+    {% if keys_data %}
+    <div class="module">
+        <h2>{% trans 'Results' %}</h2>
+        <br>
+        {% if exact_match %}
+        <p class="help">{% trans 'Exact key match found.' %}</p>
+        {% elif total_keys %}
+        <p class="help">
+            {% blocktrans with total=total_keys start=start_index end=end_index %}Found {{ total }} keys, showing {{ start }} to {{ end }}{% endblocktrans %}
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="results">
+        <table id="result_list">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans 'Key' %}</th>
+                    <th scope="col">{% trans 'Value Preview' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key_info in keys_data %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+                    <td>
+                        <strong>{{ key_info.key }}</strong>
+                    </td>
+                    <td>
+                        <code style="max-width: 400px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ key_info.value|truncatechars:100 }}
+                        </code>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <p class="paginator" align="right">
+            {% if has_previous %}
+                <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}per_page={{ per_page }}&page={{ previous_page }}" class="prev">{% trans 'previous' %}</a>
+            {% endif %}
+            
+            {% for num in page_range %}
+                {% if num == "..." %}
+                    …
+                {% elif num == current_page %}
+                    <span class="this-page">{{ num }}</span>
+                {% else %}
+                    <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}per_page={{ per_page }}&page={{ num }}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if has_next %}
+                <a href="?{% if search_query %}q={{ search_query|urlencode }}&{% endif %}per_page={{ per_page }}&page={{ next_page }}" class="next">{% trans 'next' %}</a>
+            {% endif %}
+            {{ total_keys }} {% blocktrans count counter=total_keys %}key{% plural %}keys{% endblocktrans %}
+        </p>
+        {% endif %}
+    </div>
+    {% elif search_query and not error_message %}
+    <div class="module">
+        <p class="help">{% trans 'No keys found matching your search.' %}</p>
+    </div>
+    {% elif query_supported and not search_query %}
+    <div class="module">
+        <p class="help">{% trans 'Enter a search pattern or click Search to list all keys.' %}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -17,11 +17,16 @@
             <tbody>
                 {% for cache_name, cache_config in caches.items %}
                 <tr>
-                    <td>{{ cache_name }}</td>
+                    <td>
+                        <a href="{% url 'dj_cache_panel:key_search' cache_name %}">
+                            <strong>{{ cache_name }}</strong>
+                        </a>
+                    </td>
                     <td>{{ cache_config.BACKEND }}</td>
                 </tr>
                 {% endfor %}
-            </table>
+            </tbody>
+        </table>
     </div>
     {% else %}
     <div class="aligned">
