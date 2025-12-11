@@ -31,6 +31,15 @@ class CacheTestCase(TestCase):
 
     def setUp(self):
         """Set up test data before each test."""
+        # Clear caches before each test
+        from django.core.cache import caches
+
+        for cache_name in ["default", "secondary"]:
+            try:
+                caches[cache_name].clear()
+            except Exception:
+                pass
+
         # Create admin user
         self.admin_user = User.objects.create_user(
             username="admin",
@@ -43,6 +52,17 @@ class CacheTestCase(TestCase):
         # Create authenticated client
         self.client = Client()
         self.client.login(username="admin", password="testpass123")
+
+    def tearDown(self):
+        """Clean up after each test."""
+        # Clear caches after each test
+        from django.core.cache import caches
+
+        for cache_name in ["default", "secondary"]:
+            try:
+                caches[cache_name].clear()
+            except Exception:
+                pass
 
     def create_unauthenticated_client(self):
         """Create an unauthenticated Django test client."""
