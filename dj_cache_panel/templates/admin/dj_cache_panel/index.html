@@ -3,30 +3,77 @@
 
 {% block content %}
 <div class="module">
-    {% if caches %}
+    {% if caches_info %}
     <h2>{% trans 'Cache Instances' %}</h2>
     <br>
     <div class="results">
         <table id="result_list">
             <thead>
                 <tr>
-                    <th>Cache Name</th>
-                    <th>Backend</th>
+                    <th>{% trans 'Cache Name' %}</th>
+                    <th>{% trans 'Backend' %}</th>
+                    <th style="text-align: center;">{% trans 'Query' %}</th>
+                    <th style="text-align: center;">{% trans 'Get' %}</th>
+                    <th style="text-align: center;">{% trans 'Delete' %}</th>
+                    <th style="text-align: center;">{% trans 'Flush' %}</th>
                 </tr>
             </thead>
             <tbody>
-                {% for cache_name, cache_config in caches.items %}
+                {% for cache_info in caches_info %}
                 <tr>
                     <td>
-                        <a href="{% url 'dj_cache_panel:key_search' cache_name %}">
-                            <strong>{{ cache_name }}</strong>
+                        <a href="{% url 'dj_cache_panel:key_search' cache_info.name %}">
+                            <strong>{{ cache_info.name }}</strong>
                         </a>
                     </td>
-                    <td>{{ cache_config.BACKEND }}</td>
+                    <td>
+                        <code class="backend-name">{{ cache_info.backend_short }}</code>
+                        {% if cache_info.error %}
+                        <br><span class="backend-error">{{ cache_info.error }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if cache_info.abilities.query %}
+                            <span class="ability-indicator ability-supported" title="{% trans 'Supports key listing/search' %}">✓</span>
+                        {% else %}
+                            <span class="ability-indicator ability-unsupported" title="{% trans 'Key listing not supported' %}">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if cache_info.abilities.get_key %}
+                            <span class="ability-indicator ability-supported" title="{% trans 'Supports getting key values' %}">✓</span>
+                        {% else %}
+                            <span class="ability-indicator ability-unsupported" title="{% trans 'Get not supported' %}">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if cache_info.abilities.delete_key %}
+                            <span class="ability-indicator ability-supported" title="{% trans 'Supports deleting keys' %}">✓</span>
+                        {% else %}
+                            <span class="ability-indicator ability-unsupported" title="{% trans 'Delete not supported' %}">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if cache_info.abilities.flush_cache %}
+                            <span class="ability-indicator ability-supported" title="{% trans 'Supports flushing entire cache' %}">✓</span>
+                        {% else %}
+                            <span class="ability-indicator ability-unsupported" title="{% trans 'Flush not supported' %}">—</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    
+    <div class="abilities-legend">
+        <p class="abilities-legend-title">{% trans 'Abilities Legend:' %}</p>
+        <ul class="abilities-legend-list">
+            <li><strong>{% trans 'Query:' %}</strong> {% trans 'List and search keys with wildcard patterns' %}</li>
+            <li><strong>{% trans 'Get:' %}</strong> {% trans 'Retrieve individual key values' %}</li>
+            <li><strong>{% trans 'Delete:' %}</strong> {% trans 'Delete individual keys' %}</li>
+            <li><strong>{% trans 'Flush:' %}</strong> {% trans 'Clear all keys from the cache' %}</li>
+        </ul>
     </div>
     {% else %}
     <div class="aligned">

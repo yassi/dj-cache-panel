@@ -10,12 +10,14 @@ A Django Admin panel for browsing, inspecting, and managing Django cache backend
 
 ## Features
 
-- **Browse Cache Keys**: Search and filter cache keys with pattern matching
-- **Key Management**: View, edit, and delete cache keys with support for all data types
-- **Feature Toggles**: Granular control over operations (delete, edit, TTL updates)
-- **Django Admin Integration**: Seamless integration with Django admin styling and dark mode
-- **Permission Control**: Respects Django admin permissions and staff-only access
-- **Multiple Instances**: Support for multiple cache backends with different configurations
+- 🔍 **Browse Cache Instances**: View all configured cache backends from your `CACHES` setting
+- 📊 **Abilities Matrix**: See at a glance which operations each cache supports (Query, Get, Delete, Flush)
+- 🔎 **Key Search**: Search and browse cache keys with wildcard patterns (for supported backends)
+- 📄 **Value Preview**: View cache values directly in search results
+- 📑 **Pagination**: Navigate through large sets of keys efficiently
+- 🎯 **Admin Integration**: Seamlessly integrates with Django's admin interface
+- 🔒 **Secure**: Only accessible to staff users
+- 🔌 **Backend Agnostic**: Works with any Django cache backend (with varying feature support)
 
 ## Supported Cache Data Types
 

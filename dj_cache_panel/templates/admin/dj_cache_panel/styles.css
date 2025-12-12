@@ -423,6 +423,83 @@
     font-style: italic;
 }
 
+/* ===== INDEX PAGE ABILITIES STYLES ===== */
+
+/* Ability indicators (checkmarks and dashes) */
+.ability-indicator {
+    font-size: 1.2em;
+    display: inline-block;
+}
+
+.ability-supported {
+    color: var(--link-fg, #417690);
+}
+
+.ability-unsupported {
+    color: var(--border-color, #ccc);
+}
+
+/* Backend name display */
+.backend-name {
+    font-size: 0.9em;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.backend-error {
+    color: #ba2121;
+    font-size: 0.85em;
+}
+
+/* Abilities legend section */
+.abilities-legend {
+    margin-top: 20px;
+    padding: 10px;
+    background: var(--darkened-bg, #f8f8f8);
+    border-left: 3px solid var(--link-fg, #417690);
+    border-radius: 4px;
+}
+
+.abilities-legend-title {
+    margin: 0 0 10px 0;
+    font-weight: bold;
+    color: var(--body-fg, #333);
+}
+
+.abilities-legend-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style: none;
+    color: var(--body-fg, #333);
+}
+
+.abilities-legend-list li {
+    margin-bottom: 5px;
+}
+
+.abilities-legend-list strong {
+    color: var(--body-fg, #333);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .ability-supported {
+        color: var(--link-fg, #79aec8);
+    }
+
+    .ability-unsupported {
+        color: var(--border-color, #555);
+    }
+
+    .abilities-legend {
+        background: var(--darkened-bg, rgba(255, 255, 255, 0.05));
+        border-left-color: var(--link-fg, #79aec8);
+    }
+
+    .backend-error {
+        color: #cc2936;
+    }
+}
+
 /* ===== COLLECTION MEMBER DELETE STYLES ===== */
 
 .delete-member-btn {

@@ -43,8 +43,36 @@ def _get_page_range(current_page, total_pages, window=2):
 
 @staff_member_required
 def index(request):
+    """
+    Display all configured cache instances with their panel abilities.
+    """
+    # Build cache info with panel abilities
+    caches_info = []
+    for cache_name, cache_config in settings.CACHES.items():
+        try:
+            cache_panel = get_cache_panel(cache_name)
+            cache_info = {
+                "name": cache_name,
+                "config": cache_config,
+                "backend": cache_config.get("BACKEND", "Unknown"),
+                "backend_short": cache_config.get("BACKEND", "").split(".")[-1],
+                "abilities": cache_panel.ABILITIES,
+            }
+            caches_info.append(cache_info)
+        except Exception as e:
+            # If we can't get panel info, still show the cache
+            cache_info = {
+                "name": cache_name,
+                "config": cache_config,
+                "backend": cache_config.get("BACKEND", "Unknown"),
+                "backend_short": cache_config.get("BACKEND", "").split(".")[-1],
+                "abilities": {},
+                "error": str(e),
+            }
+            caches_info.append(cache_info)
+
     context = {
-        "caches": settings.CACHES,
+        "caches_info": caches_info,
         "title": "DJ Cache Panel - Instances",
     }
     return render(request, "admin/dj_cache_panel/index.html", context)
