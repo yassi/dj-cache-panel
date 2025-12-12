@@ -45,6 +45,12 @@
     border-color: var(--message-error-border, #f5c6cb);
 }
 
+.messagelist .warning  {
+    background-color: var(--message-warning-bg, #fff3cd);
+    color: var(--message-warning-fg, #856404);
+    border-color: var(--message-warning-border, #ffeeba);
+}
+
 /* ===== INSTANCE OVERVIEW STYLES ===== */
 
 .instance-stats {

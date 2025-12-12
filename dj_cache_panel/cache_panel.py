@@ -9,7 +9,7 @@ from django.core.cache import caches
 BACKEND_PANEL_MAP_DEFAULT = {
     # Local memory cache
     "django.core.cache.backends.locmem.LocMemCache": "LocalMemoryCachePanel",
-    # Redis backends
+    # Redis backends (standalone - cluster detection happens in get_cache_panel)
     "django.core.cache.backends.redis.RedisCache": "RedisCachePanel",
     "django_redis.cache.RedisCache": "RedisCachePanel",
     # Memcached backends
@@ -392,9 +392,9 @@ class DummyCachePanel(CachePanel):
 
     ABILITIES = {
         "query": False,
-        "get_key": True,
-        "delete_key": True,
-        "flush_cache": True,
+        "get_key": False,
+        "delete_key": False,
+        "flush_cache": False,
     }
 
 
@@ -429,11 +429,139 @@ class MemcachedCachePanel(CachePanel):
 
 class RedisCachePanel(CachePanel):
     """
-    Implements the cache panel for the redis cache backend.
+    Implements the cache panel for standalone Redis instances.
+
+    Uses the SCAN command to iterate through keys efficiently without
+    blocking the Redis server.
     """
 
     ABILITIES = {
-        "query": False,
+        "query": True,
+        "get_key": True,
+        "delete_key": True,
+        "flush_cache": True,
+    }
+
+    def _get_redis_connection(self):
+        """
+        Get the underlying Redis connection.
+
+        Handles both Django's built-in RedisCache and django-redis.
+        """
+        # Try django-redis first (most common)
+        if hasattr(self.cache, "client"):
+            # django-redis
+            return self.cache.client.get_client()
+        elif hasattr(self.cache, "_cache"):
+            # Django's built-in RedisCache
+            return self.cache._cache
+        else:
+            raise AttributeError("Cannot find Redis connection in cache object")
+
+    def _scan_keys(
+        self,
+        pattern: str = "*",
+        page: int = 1,
+        per_page: int = 25,
+        scan_count: int = 100,
+    ):
+        """
+        Scan Redis for keys matching the pattern using the SCAN command.
+
+        SCAN is cursor-based and doesn't block the server like KEYS does.
+        """
+        connection = self._get_redis_connection()
+
+        # Convert our pattern to Redis pattern if needed
+        # If no wildcards, treat as exact match with wildcards
+        if pattern and pattern != "*":
+            redis_pattern = pattern
+        else:
+            redis_pattern = "*"
+
+        # For django-redis, we need to add the cache's key prefix
+        if hasattr(self.cache, "make_key"):
+            # Get the prefix pattern
+            prefix_pattern = self.cache.make_key(redis_pattern)
+        else:
+            prefix_pattern = redis_pattern
+
+        # Use SCAN to get all matching keys
+        # SCAN returns an iterator in redis-py
+        all_keys = []
+        cursor = 0
+
+        try:
+            # Use SCAN with pattern matching
+            while True:
+                cursor, keys = connection.scan(
+                    cursor=cursor, match=prefix_pattern, count=scan_count
+                )
+                all_keys.extend(keys)
+
+                if cursor == 0:
+                    break
+
+            # Decode keys if they're bytes
+            decoded_keys = []
+            for key in all_keys:
+                if isinstance(key, bytes):
+                    key = key.decode("utf-8")
+
+                # Remove the cache prefix to get the original key
+                if hasattr(self.cache, "make_key"):
+                    # Try to reverse the make_key transformation
+                    # Django/django-redis typically adds prefix like ":1:prefix:key"
+                    if hasattr(self.cache, "key_prefix") and self.cache.key_prefix:
+                        if key.startswith(self.cache.key_prefix):
+                            key = key[len(self.cache.key_prefix) :]
+
+                    # Remove version prefix (format is :VERSION:key)
+                    if key.startswith(":"):
+                        parts = key.split(":", 2)
+                        if len(parts) >= 3:
+                            key = parts[2]
+
+                decoded_keys.append(key)
+
+            # Sort for consistent pagination
+            decoded_keys.sort()
+
+            # Apply pagination
+            total_count = len(decoded_keys)
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            paginated_keys = decoded_keys[start_idx:end_idx]
+
+            return {
+                "keys": paginated_keys,
+                "total_count": total_count,
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            # If SCAN fails, return empty result
+            return {
+                "keys": [],
+                "total_count": 0,
+                "page": page,
+                "per_page": per_page,
+                "error": str(e),
+            }
+
+
+class RedisClusterCachePanel(CachePanel):
+    """
+    Implements the cache panel for Redis cluster instances.
+
+    Redis clusters require different handling than standalone instances
+    as keys are distributed across multiple nodes.
+
+    Query support is not yet implemented for clusters.
+    """
+
+    ABILITIES = {
+        "query": False,  # Not yet implemented for clusters
         "get_key": True,
         "delete_key": True,
         "flush_cache": True,
