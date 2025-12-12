@@ -28,21 +28,43 @@
     </div>
     {% endif %}
 
-    <!-- Query Not Supported Message -->
-    {% if not query_supported %}
+    <!-- Query/Get Key Not Supported Messages -->
+    {% if not query_supported or not get_key_supported %}
     <div class="module">
         <div class="messagelist">
             <div class="warning" style="background: #ffc; padding: 10px; border-left: 4px solid #fc0;">
+                {% if not query_supported and not get_key_supported %}
+                <strong>{% trans 'Key Operations Not Available' %}</strong>
+                <ul>
+                    <li style="margin: 5px 0 0 0;">
+                        {% trans 'This cache backend does not support listing keys or performing exact key lookups.' %}
+                    </li>
+                    <li style="margin: 5px 0 0 0;">
+                        {% trans 'No search functionality is available for this cache backend.' %}
+                    </li>
+                </ul>
+                {% elif not query_supported %}
                 <strong>{% trans 'Key Listing Not Available' %}</strong>
-                <p style="margin: 5px 0 0 0;">
-                    {% trans 'This cache backend does not support listing all keys. You can still perform exact key lookups using the search box below.' %}
-                </p>
+                <ul>
+                    <li style="margin: 5px 0 0 0;">
+                        {% trans 'This cache backend does not support listing all keys. You can still perform exact key lookups using the search box below.' %}
+                    </li>
+                </ul>
+                {% elif not get_key_supported %}
+                <strong>{% trans 'Key Lookup Not Available' %}</strong>
+                <ul>
+                    <li style="margin: 5px 0 0 0;">
+                        {% trans 'This cache backend does not support getting key values. You can still list keys using wildcard patterns.' %}
+                    </li>
+                </ul>
+                {% endif %}
             </div>
         </div>
     </div>
     {% endif %}
 
     <!-- Search Form -->
+    {% if query_supported or get_key_supported %}
     <div class="module">
         <h2>{% trans 'Search Keys' %}</h2>
         <br>
@@ -52,7 +74,7 @@
                     <div class="search-field-group">
                         <label for="q">{% trans 'Key:' %}</label>
                         <input type="text" id="q" name="q" value="{{ search_query }}" 
-                               placeholder="{% if query_supported %}*{% else %}{% trans 'Enter exact key name' %}{% endif %}" 
+                               placeholder="{% if query_supported %}*{% elif get_key_supported %}{% trans 'Enter exact key name' %}{% endif %}" 
                                class="vTextField" style="width: 300px;">
                     </div>
                     {% if query_supported %}
@@ -74,13 +96,15 @@
                 <div class="search-help" style="margin-top: 10px;">
                     {% if query_supported %}
                     <div class="help">{% trans 'Use * for wildcards, e.g., user:* or *:cache. Leave empty or use * to list all keys.' %}</div>
-                    {% else %}
+                    {% elif get_key_supported %}
                     <div class="help">{% trans 'Enter the exact key name to look up its value.' %}</div>
                     {% endif %}
                 </div>
             </div>
         </form>
     </div>
+    {% endif %}
+
 
     <!-- Results -->
     {% if keys_data %}
@@ -151,6 +175,10 @@
     {% elif query_supported and not search_query %}
     <div class="module">
         <p class="help">{% trans 'Enter a search pattern or click Search to list all keys.' %}</p>
+    </div>
+    {% elif not query_supported and not get_key_supported %}
+    <div class="module">
+        <p class="help">{% trans 'This cache backend does not support any key search or lookup operations.' %}</p>
     </div>
     {% endif %}
 </div>
