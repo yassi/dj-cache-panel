@@ -4,6 +4,7 @@
 {% block title %}{{ title }} | DJ Cache Panel{% endblock %}
 
 {% block extrahead %}
+{{ block.super }}
 <style type="text/css">
     {% include "admin/dj_cache_panel/styles.css" %}
 </style>
@@ -11,6 +12,10 @@
 
 {% block branding %}
 <h1 id="site-name"><a href="{% url 'dj_cache_panel:index' %}">DJ Cache Panel</a></h1>
+{% endblock %}
+
+{% block nav-sidebar %}
+{# Hide sidebar - we don't want to show all apps #}
 {% endblock %}
 
 {% block breadcrumbs %}

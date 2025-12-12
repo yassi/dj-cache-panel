@@ -1,6 +1,7 @@
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 from django.conf import settings
+from django.contrib import admin
 
 from dj_cache_panel.cache_panel import get_cache_panel
 
@@ -71,10 +72,14 @@ def index(request):
             }
             caches_info.append(cache_info)
 
-    context = {
-        "caches_info": caches_info,
-        "title": "DJ Cache Panel - Instances",
-    }
+    context = admin.site.each_context(request)
+
+    context.update(
+        {
+            "caches_info": caches_info,
+            "title": "DJ Cache Panel - Instances",
+        }
+    )
     return render(request, "admin/dj_cache_panel/index.html", context)
 
 
@@ -89,14 +94,18 @@ def key_search(request, cache_name: str):
     cache_panel = get_cache_panel(cache_name)
     cache_config = settings.CACHES.get(cache_name, {})
 
-    context = {
-        "cache_name": cache_name,
-        "cache_config": cache_config,
-        "title": f"{cache_name} - Search Keys",
-        "query_supported": cache_panel.is_feature_supported("query"),
-        "get_key_supported": cache_panel.is_feature_supported("get_key"),
-        "abilities": cache_panel.abilities,
-    }
+    context = admin.site.each_context(request)
+
+    context.update(
+        {
+            "cache_name": cache_name,
+            "cache_config": cache_config,
+            "title": f"{cache_name} - Search Keys",
+            "query_supported": cache_panel.is_feature_supported("query"),
+            "get_key_supported": cache_panel.is_feature_supported("get_key"),
+            "abilities": cache_panel.abilities,
+        }
+    )
 
     # Get search parameters
     search_query = request.GET.get("q", "").strip()
