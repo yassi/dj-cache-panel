@@ -18,6 +18,10 @@
 {# Hide sidebar - we don't want to show all apps #}
 {% endblock %}
 
+{% block messages %}
+{% endblock %}
+
+
 {% block breadcrumbs %}
 <div class="breadcrumbs">
 <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>

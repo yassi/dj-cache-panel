@@ -64,6 +64,7 @@ class CachePanel:
         "query": False,
         "get_key": False,
         "delete_key": False,
+        "edit_key": False,
         "flush_cache": False,
     }
 
@@ -140,6 +141,7 @@ class CachePanel:
         return {
             "key": key,
             "value": value,
+            "expiry": None,  # TTL not available via Django's cache framework
         }
 
     def delete_key(self, key: str):
@@ -148,6 +150,23 @@ class CachePanel:
             "success": True,
             "error": None,
             "message": f"Key {key} deleted successfully.",
+        }
+
+    def edit_key(self, key: str, value):
+        """
+        Update the value of a cache key.
+        """
+        if not self.is_feature_supported("edit_key"):
+            raise NotImplementedError(
+                "Editing keys is not supported for this cache backend."
+            )
+        # Use set with no timeout to preserve existing TTL if possible
+        # Django's cache.set() will update the value
+        self.cache.set(key, value)
+        return {
+            "success": True,
+            "error": None,
+            "message": f"Key {key} updated successfully.",
         }
 
     def flush_cache(self):
@@ -171,6 +190,7 @@ class LocalMemoryCachePanel(CachePanel):
         "query": True,
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }
 
@@ -242,6 +262,7 @@ class LocalMemoryCachePanel(CachePanel):
             "value": value,
             "exists": exists,
             "type": type(value).__name__ if value is not None else None,
+            "expiry": None,  # TTL not available via Django's cache framework
         }
 
     def _key_exists(self, key: str):
@@ -265,6 +286,7 @@ class DatabaseCachePanel(CachePanel):
         "query": True,
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }
 
@@ -366,6 +388,30 @@ class DatabaseCachePanel(CachePanel):
             "per_page": per_page,
         }
 
+    def get_key(self, key: str):
+        """
+        Get a key value from the database cache.
+
+        Django's cache.get() handles the key transformation automatically,
+        so we can use it directly.
+        """
+        # Use sentinel to check if key exists (handles None values)
+        sentinel = object()
+        value = self.cache.get(key, sentinel)
+        exists = value is not sentinel
+
+        # If key doesn't exist, value should be None for the return
+        if not exists:
+            value = None
+
+        return {
+            "key": key,
+            "value": value,
+            "exists": exists,
+            "type": type(value).__name__ if value is not None else None,
+            "expiry": None,  # TTL not available via Django's cache framework
+        }
+
 
 class FileBasedCachePanel(CachePanel):
     """
@@ -381,8 +427,33 @@ class FileBasedCachePanel(CachePanel):
         "query": False,  # Cannot list keys - they're stored as hashed filenames
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }
+
+    def get_key(self, key: str):
+        """
+        Get a key value from the file-based cache.
+
+        Django's cache.get() handles the key hashing automatically,
+        so we can use it directly.
+        """
+        # Use sentinel to check if key exists (handles None values)
+        sentinel = object()
+        value = self.cache.get(key, sentinel)
+        exists = value is not sentinel
+
+        # If key doesn't exist, value should be None for the return
+        if not exists:
+            value = None
+
+        return {
+            "key": key,
+            "value": value,
+            "exists": exists,
+            "type": type(value).__name__ if value is not None else None,
+            "expiry": None,  # TTL not available via Django's cache framework
+        }
 
 
 class DummyCachePanel(CachePanel):
@@ -394,6 +465,7 @@ class DummyCachePanel(CachePanel):
         "query": False,
         "get_key": False,
         "delete_key": False,
+        "edit_key": False,
         "flush_cache": False,
     }
 
@@ -410,6 +482,7 @@ class GenericCachePanel(CachePanel):
         "query": False,
         "get_key": True,
         "delete_key": True,
+        "edit_key": False,  # Dummy cache doesn't actually store values
         "flush_cache": False,
     }
 
@@ -423,6 +496,7 @@ class MemcachedCachePanel(CachePanel):
         "query": False,
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }
 
@@ -439,6 +513,7 @@ class RedisCachePanel(CachePanel):
         "query": True,
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }
 
@@ -564,5 +639,6 @@ class RedisClusterCachePanel(CachePanel):
         "query": False,  # Not yet implemented for clusters
         "get_key": True,
         "delete_key": True,
+        "edit_key": True,
         "flush_cache": True,
     }

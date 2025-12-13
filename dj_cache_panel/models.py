@@ -10,5 +10,5 @@ class CachePanelPlaceholder(models.Model):
 
     class Meta:
         managed = False
-        verbose_name = "Django Cache Panel"
-        verbose_name_plural = "Django Cache Panel"
+        verbose_name = "DJ Cache Panel"
+        verbose_name_plural = "DJ Cache Panel"

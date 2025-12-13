@@ -1,0 +1,118 @@
+{% extends "admin/dj_cache_panel/base.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'dj_cache_panel:index' %}">{% trans 'Cache Instances' %}</a>
+    &rsaquo; <a href="{% url 'dj_cache_panel:key_search' cache_name %}">{{ cache_name }}</a>
+    &rsaquo; {{ key }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messagelist">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Key Does Not Exist Error -->
+    {% if not key_exists %}
+    <div class="messagelist">
+        <div class="error">
+            <strong>{% trans 'Error:' %}</strong> {% trans 'This key does not exist in the cache.' %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Key Header with Delete Button -->
+    <div class="key-detail-header">
+        <h1>{% trans 'Key Detail' %}</h1>
+        {% if delete_supported and key_exists %}
+        <form method="post" class="key-detail-delete-form" onsubmit="return confirm('{% trans 'Are you sure you want to delete this key? This action cannot be undone.' %}');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="submit" value="{% trans 'Delete Key' %}" class="delete-button">
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Key Information -->
+    <div class="module">
+        <h2>{% trans 'Key Information' %}</h2>
+        <br>
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>{% trans 'Key Name:' %}</strong></label>
+                <div class="readonly">
+                    <code>{{ key }}</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>{% trans 'Cache Backend:' %}</strong></label>
+                <div class="readonly">
+                    <code>{{ cache_config.BACKEND }}</code>
+                </div>
+            </div>
+        </div>
+
+        {% if key_value.type %}
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>{% trans 'Value Type:' %}</strong></label>
+                <div class="readonly">
+                    <code>{{ key_value.type }}</code>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Value Editor -->
+    <div class="module">
+        <h2>{% trans 'Value' %}</h2>
+        <br>
+        <form method="post" id="edit-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update">
+            <div class="form-row">
+                <div class="field-box">
+                    <label for="value"><strong>{% trans 'Value:' %}</strong></label>
+                    <textarea 
+                        id="value" 
+                        name="value" 
+                        rows="10" 
+                        class="vLargeTextField" 
+                        style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; width: 100%;"
+                        {% if not edit_supported or not key_exists %}disabled{% endif %}
+                    >{{ value_display }}</textarea>
+                    {% if not key_exists %}
+                    <p class="help" style="color: #999; margin-top: 5px;">
+                        {% trans 'This key does not exist. Cannot edit or delete.' %}
+                    </p>
+                    {% elif not edit_supported %}
+                    <p class="help" style="color: #999; margin-top: 5px;">
+                        {% trans 'Editing is not supported for this cache backend.' %}
+                    </p>
+                    {% else %}
+                    <p class="help" style="margin-top: 5px;">
+                        {% trans 'Modify the value above and click Save to update the cache key.' %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="{% trans 'Update Value' %}" class="default" {% if not edit_supported or not key_exists %}disabled{% endif %}>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

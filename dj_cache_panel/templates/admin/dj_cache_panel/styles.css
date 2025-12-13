@@ -266,11 +266,32 @@
     opacity: 0.8;
 }
 
+/* Key Detail Page Styles */
+.key-detail-delete-form {
+    margin: 0;
+}
+
+.key-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.key-detail-header h1 {
+    margin: 0;
+}
+
 /* Delete button styling to match Django admin */
 .delete-button {
     background-color: #ba2121 !important;
     color: white !important;
     border-color: #ba2121 !important;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
 }
 
 .delete-button:hover,

@@ -2,6 +2,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 from django.conf import settings
 from django.contrib import admin
+from urllib.parse import unquote
 
 from dj_cache_panel.cache_panel import get_cache_panel
 
@@ -126,8 +127,7 @@ def key_search(request, cache_name: str):
                 context["keys_data"] = [
                     {
                         "key": key_result["key"],
-                        "value": key_result["value"],
-                        "type": key_result.get("type", "unknown"),
+                        "value": key_result.get("value"),
                     }
                 ]
                 context["total_keys"] = 1
@@ -155,7 +155,6 @@ def key_search(request, cache_name: str):
                     {
                         "key": key,
                         "value": key_info.get("value"),
-                        "type": key_info.get("type", "unknown"),
                     }
                 )
 
@@ -181,3 +180,87 @@ def key_search(request, cache_name: str):
             context["error_message"] = str(e)
 
     return render(request, "admin/dj_cache_panel/key_search.html", context)
+
+
+@staff_member_required
+def key_detail(request, cache_name: str, key: str):
+    """
+    View for displaying the details of a specific cache key.
+    Handles both GET (display) and POST (update/delete) requests.
+    """
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    from django.urls import reverse
+    import json
+
+    # Decode the key in case it was URL encoded
+    key = unquote(key)
+
+    cache_panel = get_cache_panel(cache_name)
+
+    # Handle POST requests (update or delete)
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "delete" and cache_panel.is_feature_supported("delete_key"):
+            try:
+                result = cache_panel.delete_key(key)
+                messages.success(request, "Key deleted successfully.")
+                # Redirect back to key search
+                return redirect(reverse("dj_cache_panel:key_search", args=[cache_name]))
+            except Exception as e:
+                messages.error(request, f"Error deleting key: {str(e)}")
+
+        elif action == "update" and cache_panel.is_feature_supported("edit_key"):
+            try:
+                new_value = request.POST.get("value", "")
+                # Try to parse as JSON if it looks like JSON
+                try:
+                    new_value = json.loads(new_value)
+                except (json.JSONDecodeError, ValueError):
+                    # Keep as string if not valid JSON
+                    pass
+
+                result = cache_panel.edit_key(key, new_value)
+                messages.success(request, result["message"])
+                # Redirect to refresh the page
+                return redirect(
+                    reverse("dj_cache_panel:key_detail", args=[cache_name, key])
+                )
+            except Exception as e:
+                messages.error(request, f"Error updating key: {str(e)}")
+
+    # GET request - display the key
+    key_result = cache_panel.get_key(key)
+
+    # Format value for display in input field
+    value_display = key_result.get("value")
+    if value_display is not None:
+        if isinstance(value_display, (dict, list)):
+            value_display = json.dumps(value_display, indent=2)
+        else:
+            value_display = str(value_display)
+    else:
+        value_display = ""
+
+    cache_config = settings.CACHES.get(cache_name, {})
+    key_exists = key_result.get("exists", False)
+
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "cache_name": cache_name,
+            "cache_config": cache_config,
+            "key": key,
+            "key_value": key_result,
+            "key_exists": key_exists,
+            "value_display": value_display,
+            "query_supported": cache_panel.is_feature_supported("query"),
+            "get_key_supported": cache_panel.is_feature_supported("get_key"),
+            "delete_supported": cache_panel.is_feature_supported("delete_key")
+            and key_exists,
+            "edit_supported": cache_panel.is_feature_supported("edit_key")
+            and key_exists,
+        }
+    )
+    return render(request, "admin/dj_cache_panel/key_detail.html", context)
