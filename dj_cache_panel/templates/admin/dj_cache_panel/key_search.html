@@ -6,14 +6,12 @@
 <div class="breadcrumbs">
     <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
     &rsaquo; <a href="{% url 'dj_cache_panel:index' %}">{% trans 'Cache Instances' %}</a>
-    &rsaquo; {{ cache_name }}
+    &rsaquo; {{ cache_name }} {% trans 'Key Search' %}
 </div>
 {% endblock %}
 
-
 {% block content %}
 <div class="module key-search">
-    
     <!-- Messages -->
     {% if messages %}
     <div class="messagelist">
@@ -23,14 +21,42 @@
     </div>
     {% endif %}
     
-    <!-- Cache Info Header -->
-    <div class="module">
-        <h2>{{ cache_name }}</h2>
-        <p class="help">
-            {% trans 'Backend:' %} <code>{{ cache_config.BACKEND }}</code>
-        </p>
+    <!-- Page Header with Title and Flush Button -->
+    <div class="key-search-page-header">
+        <h1>{{ cache_name }} - {% trans 'Key Search' %}</h1>
+        {% if flush_supported %}
+        <form method="post" class="key-search-flush-form" onsubmit="return confirm('{% trans 'Are you sure you want to delete all entries in this cache? This action cannot be undone.' %}');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="flush">
+            <input type="submit" value="{% trans 'Flush Cache' %}" class="flush-button">
+        </form>
+        {% else %}
+        <input type="button" value="{% trans 'Flush Cache' %}" class="flush-button" disabled>
+        {% endif %}
     </div>
 
+    <div class="module">
+        <h2>{% trans 'Cache Information' %}</h2>
+        <br>
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>Name:</strong></label>
+                <div class="readonly">
+                    <code>{{ cache_name }}</code>
+                </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>Backend:</strong></label>
+                <div class="readonly">
+                    <code>{{ cache_config.BACKEND }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
     {% if error_message %}
     <div class="messagelist">
         <div class="error">{{ error_message }}</div>

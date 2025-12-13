@@ -1,3 +1,61 @@
+/* ===== KEY SEARCH PAGE STYLES ===== */
+
+.key-search-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.key-search-page-header h1 {
+    margin: 0;
+    flex: 1;
+}
+
+.key-search-flush-form {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.flush-button {
+    background-color: #ba2121 !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.flush-button:hover:not(:disabled) {
+    background-color: #a41e1e !important;
+}
+
+.flush-button:disabled {
+    background-color: #ccc !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+/* Dark mode support for flush button */
+@media (prefers-color-scheme: dark) {
+    .flush-button {
+        background-color: #cc2936 !important;
+    }
+
+    .flush-button:hover:not(:disabled) {
+        background-color: #b02329 !important;
+    }
+
+    .flush-button:disabled {
+        background-color: #555 !important;
+        color: #999 !important;
+    }
+}
+
 /* Table styles */
 #result_list {
     width: 100%;

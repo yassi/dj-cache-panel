@@ -170,7 +170,12 @@ class CachePanel:
         }
 
     def flush_cache(self):
-        self.cache.flush()
+        """
+        Clear all entries from the cache.
+
+        Uses cache.clear() which is the standard Django cache method.
+        """
+        self.cache.clear()
         return {
             "success": True,
             "error": None,
