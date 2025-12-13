@@ -15,4 +15,9 @@ urlpatterns = [
         views.key_detail,
         name="key_detail",
     ),
+    path(
+        "<str:cache_name>/add/",
+        views.key_add,
+        name="key_add",
+    ),
 ]

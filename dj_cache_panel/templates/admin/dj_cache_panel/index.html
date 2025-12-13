@@ -15,6 +15,7 @@
                     <th style="text-align: center;">{% trans 'Query' %}</th>
                     <th style="text-align: center;">{% trans 'Get' %}</th>
                     <th style="text-align: center;">{% trans 'Edit' %}</th>
+                    <th style="text-align: center;">{% trans 'Add' %}</th>
                     <th style="text-align: center;">{% trans 'Delete' %}</th>
                     <th style="text-align: center;">{% trans 'Flush' %}</th>
                 </tr>
@@ -55,6 +56,13 @@
                         {% endif %}
                     </td>
                     <td style="text-align: center;">
+                        {% if cache_info.abilities.add_key %}
+                            <span class="ability-indicator ability-supported" title="{% trans 'Supports adding new keys' %}">✓</span>
+                        {% else %}
+                            <span class="ability-indicator ability-unsupported" title="{% trans 'Add not supported' %}">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
                         {% if cache_info.abilities.delete_key %}
                             <span class="ability-indicator ability-supported" title="{% trans 'Supports deleting keys' %}">✓</span>
                         {% else %}
@@ -80,6 +88,7 @@
             <li><strong>{% trans 'Query:' %}</strong> {% trans 'List and search keys with wildcard patterns' %}</li>
             <li><strong>{% trans 'Get:' %}</strong> {% trans 'Retrieve individual key values' %}</li>
             <li><strong>{% trans 'Edit:' %}</strong> {% trans 'Update individual key values' %}</li>
+            <li><strong>{% trans 'Add:' %}</strong> {% trans 'Create new keys in the cache' %}</li>
             <li><strong>{% trans 'Delete:' %}</strong> {% trans 'Delete individual keys' %}</li>
             <li><strong>{% trans 'Flush:' %}</strong> {% trans 'Clear all keys from the cache' %}</li>
         </ul>

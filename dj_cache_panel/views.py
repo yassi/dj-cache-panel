@@ -1,9 +1,9 @@
+import json
 from urllib.parse import unquote
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.contrib import admin
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.urls import reverse
 
 from dj_cache_panel.cache_panel import get_cache_panel
@@ -205,10 +205,6 @@ def key_detail(request, cache_name: str, key: str):
     View for displaying the details of a specific cache key.
     Handles both GET (display) and POST (update/delete) requests.
     """
-    from django.contrib import messages
-    from django.shortcuts import redirect
-    from django.urls import reverse
-    import json
 
     # Decode the key in case it was URL encoded
     key = unquote(key)
@@ -281,3 +277,59 @@ def key_detail(request, cache_name: str, key: str):
         }
     )
     return render(request, "admin/dj_cache_panel/key_detail.html", context)
+
+
+@staff_member_required
+def key_add(request, cache_name: str):
+    """
+    View for adding a new cache key.
+    Handles both GET (display form) and POST (create key) requests.
+    """
+
+    # Decode the cache name in case it was URL encoded
+    cache_name = unquote(cache_name)
+
+    cache_panel = get_cache_panel(cache_name)
+    cache_config = settings.CACHES.get(cache_name, {})
+
+    # Handle POST requests (create key)
+    if request.method == "POST":
+        if cache_panel.is_feature_supported("edit_key"):
+            try:
+                key_name = request.POST.get("key", "").strip()
+                value = request.POST.get("value", "").strip()
+
+                if not key_name:
+                    messages.error(request, "Key name is required.")
+                else:
+                    # Try to parse as JSON if it looks like JSON
+                    try:
+                        parsed_value = json.loads(value)
+                    except (json.JSONDecodeError, ValueError):
+                        # Keep as string if not valid JSON
+                        parsed_value = value
+
+                    # Use edit_key to create the key (it will create if it doesn't exist)
+                    cache_panel.edit_key(key_name, parsed_value)
+                    messages.success(request, f"Key '{key_name}' created successfully.")
+                    # Redirect back to key search
+                    return redirect(
+                        reverse("dj_cache_panel:key_search", args=[cache_name])
+                    )
+            except Exception as e:
+                messages.error(request, f"Error creating key: {str(e)}")
+        else:
+            messages.error(
+                request, "Adding keys is not supported for this cache backend."
+            )
+
+    # GET request - display the form
+    context = admin.site.each_context(request)
+    context.update(
+        {
+            "cache_name": cache_name,
+            "cache_config": cache_config,
+            "edit_supported": cache_panel.is_feature_supported("edit_key"),
+        }
+    )
+    return render(request, "admin/dj_cache_panel/key_add.html", context)

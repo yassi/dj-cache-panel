@@ -65,6 +65,7 @@ class CachePanel:
         "get_key": False,
         "delete_key": False,
         "edit_key": False,
+        "add_key": False,
         "flush_cache": False,
     }
 
@@ -91,15 +92,7 @@ class CachePanel:
         """
         return self.abilities.get(feature, False)
 
-    @property
-    def _get_all_keys(self):
-        """
-        Convenience method to get all keys from the cache. This should be used for more
-        basic backends like local memory.
-        """
-        return self.cache.keys("*")
-
-    def _scan_keys(
+    def _query(
         self,
         pattern: str = "*",
         page: int = 1,
@@ -134,17 +127,52 @@ class CachePanel:
             raise NotImplementedError(
                 "Querying is not supported for this cache backend."
             )
-        return self._scan_keys(pattern, page, per_page, scan_count)
+        return self._query(pattern, page, per_page, scan_count)
 
-    def get_key(self, key: str):
-        value = self.cache.get(key)
+    def _get_key(self, key: str):
+        """
+        Get a key value from the database cache.
+
+        Django's cache.get() handles the key transformation automatically,
+        so we can use it directly.
+
+        Override this method to implement custom get logic.
+        """
+        # Use sentinel to check if key exists (handles None values)
+        sentinel = object()
+        value = self.cache.get(key, sentinel)
+        exists = value is not sentinel
+
+        # If key doesn't exist, value should be None for the return
+        if not exists:
+            value = None
+
         return {
             "key": key,
             "value": value,
+            "exists": exists,
+            "type": type(value).__name__ if value is not None else None,
             "expiry": None,  # TTL not available via Django's cache framework
         }
 
-    def delete_key(self, key: str):
+    def get_key(self, key: str):
+        """
+        Get a key value from the cache.
+
+        standard gating provided in this class to prevent accidental misuse.
+        """
+        if not self.is_feature_supported("get_key"):
+            raise NotImplementedError(
+                "Getting keys is not supported for this cache backend."
+            )
+        return self._get_key(key)
+
+    def _delete_key(self, key: str):
+        """
+        Delete a key from the cache.
+
+        Override this method to implement custom delete logic.
+        """
         self.cache.delete(key)
         return {
             "success": True,
@@ -152,14 +180,24 @@ class CachePanel:
             "message": f"Key {key} deleted successfully.",
         }
 
-    def edit_key(self, key: str, value):
+    def delete_key(self, key: str):
+        """
+        Delete a key from the cache.
+
+        standard gating provided in this class to prevent accidental misuse.
+        """
+        if not self.is_feature_supported("delete_key"):
+            raise NotImplementedError(
+                "Deleting keys is not supported for this cache backend."
+            )
+        return self._delete_key(key)
+
+    def _edit_key(self, key: str, value):
         """
         Update the value of a cache key.
+
+        Override this method to implement custom edit logic.
         """
-        if not self.is_feature_supported("edit_key"):
-            raise NotImplementedError(
-                "Editing keys is not supported for this cache backend."
-            )
         # Use set with no timeout to preserve existing TTL if possible
         # Django's cache.set() will update the value
         self.cache.set(key, value)
@@ -169,11 +207,23 @@ class CachePanel:
             "message": f"Key {key} updated successfully.",
         }
 
-    def flush_cache(self):
+    def edit_key(self, key: str, value):
+        """
+        Update the value of a cache key.
+
+        standard gating provided in this class to prevent accidental misuse.
+        """
+        if not self.is_feature_supported("edit_key"):
+            raise NotImplementedError(
+                "Editing keys is not supported for this cache backend."
+            )
+        return self._edit_key(key, value)
+
+    def _flush_cache(self):
         """
         Clear all entries from the cache.
 
-        Uses cache.clear() which is the standard Django cache method.
+        Override this method to implement custom flush logic.
         """
         self.cache.clear()
         return {
@@ -181,6 +231,18 @@ class CachePanel:
             "error": None,
             "message": "Cache flushed successfully.",
         }
+
+    def flush_cache(self):
+        """
+        Clear all entries from the cache.
+
+        standard gating provided in this class to prevent accidental misuse.
+        """
+        if not self.is_feature_supported("flush_cache"):
+            raise NotImplementedError(
+                "Flushing the cache is not supported for this cache backend."
+            )
+        return self._flush_cache()
 
 
 class LocalMemoryCachePanel(CachePanel):
@@ -196,6 +258,7 @@ class LocalMemoryCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }
 
@@ -206,7 +269,7 @@ class LocalMemoryCachePanel(CachePanel):
         """
         return getattr(self.cache, "_cache", {})
 
-    def _scan_keys(
+    def _query(
         self,
         pattern: str = "*",
         page: int = 1,
@@ -256,28 +319,6 @@ class LocalMemoryCachePanel(CachePanel):
             "per_page": per_page,
         }
 
-    def get_key(self, key: str):
-        """
-        Get a key value from the cache.
-        """
-        value = self.cache.get(key)
-        exists = value is not None or self._key_exists(key)
-        return {
-            "key": key,
-            "value": value,
-            "exists": exists,
-            "type": type(value).__name__ if value is not None else None,
-            "expiry": None,  # TTL not available via Django's cache framework
-        }
-
-    def _key_exists(self, key: str):
-        """
-        Check if a key exists in the cache (handles None values).
-        """
-        # Use a sentinel to distinguish between "key not found" and "value is None"
-        sentinel = object()
-        return self.cache.get(key, sentinel) is not sentinel
-
 
 class DatabaseCachePanel(CachePanel):
     """
@@ -292,6 +333,7 @@ class DatabaseCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }
 
@@ -310,7 +352,7 @@ class DatabaseCachePanel(CachePanel):
         sql_pattern = pattern.replace("*", "%").replace("?", "_")
         return sql_pattern
 
-    def _scan_keys(
+    def _query(
         self,
         pattern: str = "*",
         page: int = 1,
@@ -393,30 +435,6 @@ class DatabaseCachePanel(CachePanel):
             "per_page": per_page,
         }
 
-    def get_key(self, key: str):
-        """
-        Get a key value from the database cache.
-
-        Django's cache.get() handles the key transformation automatically,
-        so we can use it directly.
-        """
-        # Use sentinel to check if key exists (handles None values)
-        sentinel = object()
-        value = self.cache.get(key, sentinel)
-        exists = value is not sentinel
-
-        # If key doesn't exist, value should be None for the return
-        if not exists:
-            value = None
-
-        return {
-            "key": key,
-            "value": value,
-            "exists": exists,
-            "type": type(value).__name__ if value is not None else None,
-            "expiry": None,  # TTL not available via Django's cache framework
-        }
-
 
 class FileBasedCachePanel(CachePanel):
     """
@@ -433,32 +451,9 @@ class FileBasedCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }
-
-    def get_key(self, key: str):
-        """
-        Get a key value from the file-based cache.
-
-        Django's cache.get() handles the key hashing automatically,
-        so we can use it directly.
-        """
-        # Use sentinel to check if key exists (handles None values)
-        sentinel = object()
-        value = self.cache.get(key, sentinel)
-        exists = value is not sentinel
-
-        # If key doesn't exist, value should be None for the return
-        if not exists:
-            value = None
-
-        return {
-            "key": key,
-            "value": value,
-            "exists": exists,
-            "type": type(value).__name__ if value is not None else None,
-            "expiry": None,  # TTL not available via Django's cache framework
-        }
 
 
 class DummyCachePanel(CachePanel):
@@ -471,6 +466,7 @@ class DummyCachePanel(CachePanel):
         "get_key": False,
         "delete_key": False,
         "edit_key": False,
+        "add_key": False,
         "flush_cache": False,
     }
 
@@ -488,6 +484,7 @@ class GenericCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": False,  # Dummy cache doesn't actually store values
+        "add_key": False,
         "flush_cache": False,
     }
 
@@ -502,6 +499,7 @@ class MemcachedCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }
 
@@ -519,6 +517,7 @@ class RedisCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }
 
@@ -538,7 +537,7 @@ class RedisCachePanel(CachePanel):
         else:
             raise AttributeError("Cannot find Redis connection in cache object")
 
-    def _scan_keys(
+    def _query(
         self,
         pattern: str = "*",
         page: int = 1,
@@ -645,5 +644,6 @@ class RedisClusterCachePanel(CachePanel):
         "get_key": True,
         "delete_key": True,
         "edit_key": True,
+        "add_key": True,
         "flush_cache": True,
     }

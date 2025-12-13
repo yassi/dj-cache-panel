@@ -1,0 +1,110 @@
+{% extends "admin/dj_cache_panel/base.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'dj_cache_panel:index' %}">{% trans 'Cache Instances' %}</a>
+    &rsaquo; <a href="{% url 'dj_cache_panel:key_search' cache_name %}">{{ cache_name }}</a>
+    &rsaquo; {% trans 'Add Key' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messagelist">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="key-detail-header">
+        <h1>{% trans 'Add New Key' %}</h1>
+    </div>
+
+    <!-- Cache Information -->
+    <div class="module">
+        <h2>{% trans 'Cache Information' %}</h2>
+        <br>
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>{% trans 'Cache Name:' %}</strong></label>
+                <div class="readonly">
+                    <code>{{ cache_name }}</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-box">
+                <label><strong>{% trans 'Cache Backend:' %}</strong></label>
+                <div class="readonly">
+                    <code>{{ cache_config.BACKEND }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Key Form -->
+    <div class="module">
+        <h2>{% trans 'Key Details' %}</h2>
+        <br>
+        <form method="post" id="add-key-form">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="field-box">
+                    <label for="key"><strong>{% trans 'Key Name:' %}</strong></label>
+                    <input 
+                        type="text" 
+                        id="key" 
+                        name="key" 
+                        class="vTextField" 
+                        style="width: 100%;"
+                        {% if not edit_supported %}disabled{% endif %}
+                        required
+                    >
+                    {% if not edit_supported %}
+                    <p class="help" style="color: #999; margin-top: 5px;">
+                        {% trans 'Adding keys is not supported for this cache backend.' %}
+                    </p>
+                    {% else %}
+                    <p class="help" style="margin-top: 5px;">
+                        {% trans 'Enter the name for the new cache key.' %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-box">
+                    <label for="value"><strong>{% trans 'Value:' %}</strong></label>
+                    <textarea 
+                        id="value" 
+                        name="value" 
+                        rows="10" 
+                        class="vLargeTextField" 
+                        style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; width: 100%;"
+                        {% if not edit_supported %}disabled{% endif %}
+                    ></textarea>
+                    {% if not edit_supported %}
+                    <p class="help" style="color: #999; margin-top: 5px;">
+                        {% trans 'Adding keys is not supported for this cache backend.' %}
+                    </p>
+                    {% else %}
+                    <p class="help" style="margin-top: 5px;">
+                        {% trans 'Enter the value for the new key. You can use JSON format for complex values (dicts, lists, etc.).' %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="{% trans 'Create Key' %}" class="default" {% if not edit_supported %}disabled{% endif %}>
+                <a href="{% url 'dj_cache_panel:key_search' cache_name %}" class="button">{% trans 'Cancel' %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

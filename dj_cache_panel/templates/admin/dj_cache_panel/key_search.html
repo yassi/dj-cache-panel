@@ -54,6 +54,13 @@
                 </div>
             </div>
         </div>
+        {% if abilities.edit_key %}
+        <div class="form-row">
+            <div class="field-box">
+                <a href="{% url 'dj_cache_panel:key_add' cache_name %}" class="button">{% trans 'Add New Key' %}</a>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     
