@@ -100,6 +100,24 @@
                     {% endif %}
                 </div>
             </div>
+            <div class="form-row">
+                <div class="field-box">
+                    <label for="timeout"><strong>{% trans 'Timeout (seconds):' %}</strong></label>
+                    <input 
+                        type="number" 
+                        id="timeout" 
+                        name="timeout" 
+                        class="vIntegerField" 
+                        step="0.1"
+                        min="0"
+                        placeholder="{% trans 'Leave empty to use cache default' %}"
+                        {% if not edit_supported %}disabled{% endif %}
+                    >
+                    <p class="help" style="margin-top: 5px;">
+                        {% trans 'Optional: Set expiration time in seconds. Leave empty to use cache default.' %}
+                    </p>
+                </div>
+            </div>
             <div class="submit-row">
                 <input type="submit" value="{% trans 'Create Key' %}" class="default" {% if not edit_supported %}disabled{% endif %}>
                 <a href="{% url 'dj_cache_panel:key_search' cache_name %}" class="button">{% trans 'Cancel' %}</a>

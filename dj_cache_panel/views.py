@@ -234,12 +234,28 @@ def key_detail(request, cache_name: str, key: str):
                     # Keep as string if not valid JSON
                     pass
 
-                result = cache_panel.edit_key(key, new_value)
-                messages.success(request, result["message"])
-                # Redirect to refresh the page
-                return redirect(
-                    reverse("dj_cache_panel:key_detail", args=[cache_name, key])
-                )
+                # Get timeout value (optional)
+                timeout_str = request.POST.get("timeout", "").strip()
+                timeout = None
+                timeout_error = False
+                if timeout_str:
+                    try:
+                        timeout = float(timeout_str)
+                        if timeout < 0:
+                            raise ValueError("Timeout must be non-negative")
+                    except ValueError as e:
+                        messages.error(request, f"Invalid timeout value: {str(e)}")
+                        timeout_error = True
+                        # Continue to display the form with error - don't redirect
+
+                # Only proceed if there was no timeout error
+                if not timeout_error:
+                    result = cache_panel.edit_key(key, new_value, timeout=timeout)
+                    messages.success(request, result["message"])
+                    # Redirect to refresh the page
+                    return redirect(
+                        reverse("dj_cache_panel:key_detail", args=[cache_name, key])
+                    )
             except Exception as e:
                 messages.error(request, f"Error updating key: {str(e)}")
 
@@ -309,13 +325,31 @@ def key_add(request, cache_name: str):
                         # Keep as string if not valid JSON
                         parsed_value = value
 
-                    # Use edit_key to create the key (it will create if it doesn't exist)
-                    cache_panel.edit_key(key_name, parsed_value)
-                    messages.success(request, f"Key '{key_name}' created successfully.")
-                    # Redirect back to key search
-                    return redirect(
-                        reverse("dj_cache_panel:key_search", args=[cache_name])
-                    )
+                    # Get timeout value (optional)
+                    timeout_str = request.POST.get("timeout", "").strip()
+                    timeout = None
+                    timeout_error = False
+                    if timeout_str:
+                        try:
+                            timeout = float(timeout_str)
+                            if timeout < 0:
+                                raise ValueError("Timeout must be non-negative")
+                        except ValueError as e:
+                            messages.error(request, f"Invalid timeout value: {str(e)}")
+                            timeout_error = True
+                            # Continue to display the form with error - don't redirect
+
+                    # Only proceed if there was no timeout error
+                    if not timeout_error:
+                        # Use edit_key to create the key (it will create if it doesn't exist)
+                        cache_panel.edit_key(key_name, parsed_value, timeout=timeout)
+                        messages.success(
+                            request, f"Key '{key_name}' created successfully."
+                        )
+                        # Redirect back to key search
+                        return redirect(
+                            reverse("dj_cache_panel:key_search", args=[cache_name])
+                        )
             except Exception as e:
                 messages.error(request, f"Error creating key: {str(e)}")
         else:

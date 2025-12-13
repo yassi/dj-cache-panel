@@ -192,32 +192,42 @@ class CachePanel:
             )
         return self._delete_key(key)
 
-    def _edit_key(self, key: str, value):
+    def _edit_key(self, key: str, value, timeout=None):
         """
         Update the value of a cache key.
 
         Override this method to implement custom edit logic.
+
+        Args:
+            key: The cache key to update
+            value: The new value for the key
+            timeout: Optional timeout in seconds. If None, uses cache default or preserves existing TTL.
         """
-        # Use set with no timeout to preserve existing TTL if possible
+        # Use set with timeout if provided, otherwise preserve existing TTL if possible
         # Django's cache.set() will update the value
-        self.cache.set(key, value)
+        self.cache.set(key, value, timeout=timeout)
         return {
             "success": True,
             "error": None,
             "message": f"Key {key} updated successfully.",
         }
 
-    def edit_key(self, key: str, value):
+    def edit_key(self, key: str, value, timeout=None):
         """
         Update the value of a cache key.
 
         standard gating provided in this class to prevent accidental misuse.
+
+        Args:
+            key: The cache key to update
+            value: The new value for the key
+            timeout: Optional timeout in seconds. If None, uses cache default or preserves existing TTL.
         """
         if not self.is_feature_supported("edit_key"):
             raise NotImplementedError(
                 "Editing keys is not supported for this cache backend."
             )
-        return self._edit_key(key, value)
+        return self._edit_key(key, value, timeout=timeout)
 
     def _flush_cache(self):
         """
