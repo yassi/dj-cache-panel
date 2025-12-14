@@ -147,7 +147,6 @@ def key_search(request, cache_name: str):
                 context["exact_match"] = key_result
                 key_data = {
                     "key": key_result["key"],
-                    "value": key_result.get("value"),
                 }
                 # Add redis_key if this is a Redis backend
                 if is_redis and hasattr(cache_panel.cache, "make_key"):
@@ -155,6 +154,12 @@ def key_search(request, cache_name: str):
                     key_data["redis_key"] = redis_key
                 context["keys_data"] = [key_data]
                 context["total_keys"] = 1
+                return render(request, "admin/dj_cache_panel/key_search.html", context)
+            else:
+                # Key doesn't exist - show a message
+                messages.error(request, f"Key '{search_query}' not found in cache.")
+                context["keys_data"] = []
+                context["total_keys"] = 0
                 return render(request, "admin/dj_cache_panel/key_search.html", context)
 
     # Handle pattern search (only if query is supported)
@@ -171,7 +176,7 @@ def key_search(request, cache_name: str):
             keys = query_result["keys"]
             total_count = query_result["total_count"]
 
-            # Build keys_data with basic info
+            # Build keys_data with basic info (no value fetching)
             keys_data = []
             for key_item in keys:
                 # Handle both dict format (from Redis) and string format (from other backends)
@@ -182,10 +187,8 @@ def key_search(request, cache_name: str):
                     user_key = key_item
                     redis_key = None
 
-                key_info = cache_panel.get_key(user_key)
                 key_data = {
                     "key": user_key,
-                    "value": key_info.get("value"),
                 }
                 # Add redis_key if available (for Redis backends)
                 if redis_key:

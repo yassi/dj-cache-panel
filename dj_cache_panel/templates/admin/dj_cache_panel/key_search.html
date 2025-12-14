@@ -170,7 +170,6 @@
                     {% if is_redis %}
                     <th scope="col">{% trans 'Redis Key' %}</th>
                     {% endif %}
-                    <th scope="col">{% trans 'Value Preview' %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -186,11 +185,6 @@
                         <code class="redis-key-name">{{ key_info.redis_key|default:key_info.key }}</code>
                     </td>
                     {% endif %}
-                    <td>
-                        <code style="max-width: 400px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            {{ key_info.value|truncatechars:100 }}
-                        </code>
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
