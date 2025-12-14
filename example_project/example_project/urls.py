@@ -19,6 +19,6 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path("admin/cache/", include("dj_cache_panel.urls")),
+    path("admin/dj-cache-panel/", include("dj_cache_panel.urls")),
     path("admin/", admin.site.urls),
 ]

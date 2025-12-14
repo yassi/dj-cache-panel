@@ -36,6 +36,8 @@ BACKEND_PANEL_EXTENSIONS = DJ_CACHE_PANEL_SETTINGS.get("BACKEND_PANEL_EXTENSIONS
 # Merge the default backend panel map with any custom extensions.
 BACKEND_PANEL_MAP.update(BACKEND_PANEL_EXTENSIONS)
 
+CACHES_SETTINGS = DJ_CACHE_PANEL_SETTINGS.get("CACHES", {})
+
 
 def get_cache_panel(cache_name: str):
     """
@@ -103,6 +105,7 @@ class CachePanel:
 
     def __init__(self, cache_name: str):
         self.cache_name = cache_name
+        self.cache_settings = CACHES_SETTINGS.get(self.cache_name, {})
 
     @property
     def cache(self):
@@ -116,7 +119,13 @@ class CachePanel:
         """
         Returns the abilities of the cache panel.
         """
-        return self.ABILITIES
+        override_abilities = self.cache_settings.get("abilities", {})
+        computed_abilities = {}
+        for feature, value in self.ABILITIES.items():
+            computed_abilities[feature] = value
+            if feature in override_abilities:
+                computed_abilities[feature] = override_abilities[feature]
+        return computed_abilities
 
     def is_feature_supported(self, feature: str):
         """

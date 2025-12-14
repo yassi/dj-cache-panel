@@ -60,7 +60,7 @@ def index(request):
                 "config": cache_config,
                 "backend": cache_config.get("BACKEND", "Unknown"),
                 "backend_short": cache_config.get("BACKEND", ""),
-                "abilities": cache_panel.ABILITIES,
+                "abilities": cache_panel.abilities,
             }
             caches_info.append(cache_info)
         except Exception as e:

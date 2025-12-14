@@ -189,14 +189,16 @@ DJ_CACHE_PANEL_SETTINGS = {
     # Optional: per-cache settings overrides
     # Typically used to lock down a cache instance to only certain abilities
     "CACHES": {
-        # "redis": {
-        #     "query": True,
-        #     "get_key": True,
-        #     "delete_key": True,
-        #     "edit_key": True,
-        #     "add_key": True,
-        #     "flush_cache": True,
-        # }
+        "redis": {
+            "abilities": {  # Optional: override the abilities for this cache instance
+                # "query": True,
+                # "get_key": True,
+                # "delete_key": True,
+                # "edit_key": True,
+                # "add_key": True,
+                # "flush_cache": True,
+            },
+        }
     },
 }
 
