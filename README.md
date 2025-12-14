@@ -1,8 +1,17 @@
+[![Tests](https://github.com/yassi/dj-cache-panel/actions/workflows/test.yml/badge.svg)](https://github.com/yassi/dj-cache-panel/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/yassi/dj-cache-panel/branch/main/graph/badge.svg)](https://codecov.io/gh/yassi/dj-redis-panel)
+[![PyPI version](https://badge.fury.io/py/dj-cache-panel.svg)](https://badge.fury.io/py/dj-redis-panel)
+[![Python versions](https://img.shields.io/pypi/pyversions/dj-cache-panel.svg)](https://pypi.org/project/dj-redis-panel/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
+
+
+
 # Django Cache Panel
 
 A universal cache inspector for Django.
 
-![Django Cache Panel - Instance List](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instances_list.png)
+![Django Cache Panel - Instance List](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instance_list.png)
 
 ## Docs
 
