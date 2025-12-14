@@ -1,6 +1,6 @@
 # Django Cache Panel
 
-A Django Admin panel for browsing, inspecting, and managing Django cache backends defined in your `CACHES` setting.
+A universal cache inspector for Django.
 
 ![Django Cache Panel - Instance List](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instances_list.png)
 
@@ -10,18 +10,14 @@ A Django Admin panel for browsing, inspecting, and managing Django cache backend
 
 ## Features
 
-- 🔍 **Browse Cache Instances**: View all configured cache backends from your `CACHES` setting
-- 📊 **Abilities Matrix**: See at a glance which operations each cache supports (Query, Get, Delete, Flush)
-- 🔎 **Key Search**: Search and browse cache keys with wildcard patterns (for supported backends)
-- 📄 **Value Preview**: View cache values directly in search results
-- 📑 **Pagination**: Navigate through large sets of keys efficiently
-- 🎯 **Admin Integration**: Seamlessly integrates with Django's admin interface
-- 🔒 **Secure**: Only accessible to staff users
-- 🔌 **Backend Agnostic**: Works with any Django cache backend (with varying feature support)
-
-## Supported Cache Data Types
-
-- **String**: View and edit string values.
+- **Browse Cache Instances**: View all configured cache backends from your `CACHES` setting
+- **Abilities Matrix**: See at a glance which operations each cache supports (Query, Get, Delete, Flush)
+- **Key Search**: Search and browse cache keys with wildcard patterns (for supported backends)
+- **Value Preview**: View cache values directly in search results
+- **Pagination**: Navigate through large sets of keys efficiently
+- **Admin Integration**: Seamlessly integrates with Django's admin interface
+- **Secure**: Only accessible to staff users
+- **Backend Agnostic**: Works with any Django cache backend (with varying feature support)
 
 
 ### Project Structure
@@ -30,7 +26,7 @@ A Django Admin panel for browsing, inspecting, and managing Django cache backend
 dj-cache-panel/
 ├── dj_cache_panel/          # Main package
 │   ├── templates/           # Django templates
-│   ├── cache_utils.py       # Cache utilities
+│   ├── cache_panels.py      # Backend specific panels
 │   ├── views.py             # Django views
 │   └── urls.py              # URL patterns
 ├── example_project/         # Example Django project
@@ -57,9 +53,9 @@ will appear in the same places where your models appear.
 ![Admin Home](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/admin_home.png)
 
 ### Caches Overview
-Monitor your cache instances with detailed metrics and database information.
+Get a list of all your caches as well as the allowed capabilities for each cache
 
-![Instance Overview](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instance_overview.png)
+![Instance Overview](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instance_list.png)
 
 
 ## Installation
@@ -97,6 +93,46 @@ CACHES = {
 }
 ```
 
+Additionally, you can also define some extra settings for extending or changing behavior
+of the existing cache panels.
+
+Note: these are advanced settings; the vast majority of django projects will not need to
+define any of these
+
+```python
+DJ_CACHE_PANEL_SETTINGS = {
+    # Optional: completely replace the default backend-to-panel mapping
+    # "BACKEND_PANEL_MAP": {}
+    #
+    # Optional: extend or override specific backend-to-panel mappings
+    # Panel classes can be specified as:
+    #   - Simple class name (e.g., "RedisCachePanel") - for built-in panels
+    #   - Full module path (e.g., "myapp.panels.CustomCachePanel") - for custom panels
+    "BACKEND_PANEL_EXTENSIONS": {
+        # Example: Map a custom backend to a custom panel class
+        # "myapp.backends.CustomCache": "myapp.panels.CustomCachePanel",
+        # Example: Override a built-in backend mapping
+        # "django.core.cache.backends.redis.RedisCache": "myapp.panels.MyRedisCachePanel",
+    },
+    # Optional: per-cache settings overrides
+    # Typically used to lock down a cache instance to only certain abilities
+    "CACHES": {
+        "redis": {
+            "abilities": {  # Optional: override the abilities for this cache instance
+                # "query": True,
+                # "get_key": True,
+                # "delete_key": True,
+                # "edit_key": True,
+                # "add_key": True,
+                # "flush_cache": True,
+            },
+        }
+    },
+}
+```
+
+
+
 
 ### 4. Include URLs
 
@@ -107,7 +143,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/cache/', include('dj_cache_panel.urls')),  # Add this line
+    path('admin/dj-cache-panel/', include('dj_cache_panel.urls')),  # Add this line
     path('admin/', admin.site.urls),
 ]
 ```
@@ -150,6 +186,9 @@ If you want to contribute to this project or set it up for local development:
 - Redis server running locally
 - Git
 - Autoconf
+- Docker
+
+It is reccommended that you use docker since it will automate much of dev env setup
 
 ### 1. Clone the Repository
 
@@ -158,26 +197,29 @@ git clone https://github.com/yassi/dj-cache-panel.git
 cd dj-cache-panel
 ```
 
-### 2. Create Virtual Environment
+### 2a. Set up dev environment using virtualenv
 
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+pip install -e . # install dj-cache-panel package locally
+pip intall -r requirements.txt  # install all dev requirements
+
+# Alternatively
+make install # this will also do the above in one single command
 ```
 
-### 3. Install dj-cache-panel inside of your virtualenv
+### 2b. Set up dev environment using docker
 
-A make file is included in the repository root with multiple commands for building
-and maintaining this project. The best approach is to start by using one of the
-package installation commands found below:
 ```bash
-# Install all dependencies and dj-cache-panel into your current env
-make install
+make docker_up  # bring up all services (redis, memached) and dev environment container
+make docker_shell  # open up a shell in the docker conatiner
 ```
 
-### 4. Set Up Example Project
+### 3. Set Up Example Project
 
-The repository includes an example Django project for development and testing:
+The repository includes an example Django project for development and testing
 
 ```bash
 cd example_project
@@ -185,7 +227,7 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 5. Populate Test Data (Optional)
+### 4. Populate Test Data (Optional)
 An optional CLI tool for populating cache keys automatically is included in the
 example django project in this code base.
 
@@ -210,21 +252,10 @@ by invoking pytest directly:
 
 ```bash
 # build and install all dev dependencies and run all tests inside of docker container
-make test
+make test_docker
 
-# Additionally generate coverage reports in multiple formats
-make test_coverage
-```
-
-**Note**: Tests require a running cache backend (e.g., Redis) on `127.0.0.1:6379`. The tests use databases 13, 14, and 15 for isolation and automatically clean up after each test.
-
-### 8. Dockerized Cache Backend
-
-Test for this project (as well as any active development) require an active cache backend installation.
-Although not required, a docker-compose file is included to allow for easy creation of local
-cache instances using redis, memcached, local memory, etc.
-
-```bash
-# Start Redis on localhost and the usual port 6379
-docker-compose up -d
+# Test without the docker on your host machine.
+# note that testing always requires a redis and memcached service to be up.
+# these are mostly easily brought up using docker
+make test_local
 ```
