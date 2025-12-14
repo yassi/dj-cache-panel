@@ -46,7 +46,7 @@ class TestAdminIntegration(CacheTestCase):
 
     def test_unauthenticated_user_cannot_access_admin_cache_panel(self):
         """Test that unauthenticated users cannot access the Cache Panel through admin."""
-        client = self.create_unauthenticated_client()
+        client = Client()
         changelist_url = reverse(
             "admin:dj_cache_panel_cachepanelplaceholder_changelist"
         )
