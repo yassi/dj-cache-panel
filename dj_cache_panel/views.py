@@ -59,7 +59,7 @@ def index(request):
                 "name": cache_name,
                 "config": cache_config,
                 "backend": cache_config.get("BACKEND", "Unknown"),
-                "backend_short": cache_config.get("BACKEND", "").split(".")[-1],
+                "backend_short": cache_config.get("BACKEND", ""),
                 "abilities": cache_panel.ABILITIES,
             }
             caches_info.append(cache_info)
@@ -69,7 +69,7 @@ def index(request):
                 "name": cache_name,
                 "config": cache_config,
                 "backend": cache_config.get("BACKEND", "Unknown"),
-                "backend_short": cache_config.get("BACKEND", "").split(".")[-1],
+                "backend_short": cache_config.get("BACKEND", ""),
                 "abilities": {},
                 "error": str(e),
             }
