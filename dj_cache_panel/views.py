@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.urls import reverse
 
-from dj_cache_panel.cache_panel import get_cache_panel
+from dj_cache_panel.cache_panel import get_cache_panel, RedisCachePanel
 
 
 def _get_page_range(current_page, total_pages, window=2):
@@ -114,6 +114,9 @@ def key_search(request, cache_name: str):
 
     context = admin.site.each_context(request)
 
+    # Check if this is a Redis backend
+    is_redis = isinstance(cache_panel, RedisCachePanel)
+
     context.update(
         {
             "cache_name": cache_name,
@@ -122,6 +125,7 @@ def key_search(request, cache_name: str):
             "get_key_supported": cache_panel.is_feature_supported("get_key"),
             "flush_supported": cache_panel.is_feature_supported("flush_cache"),
             "abilities": cache_panel.abilities,
+            "is_redis": is_redis,
         }
     )
 
@@ -141,12 +145,15 @@ def key_search(request, cache_name: str):
             key_result = cache_panel.get_key(search_query)
             if key_result.get("exists"):
                 context["exact_match"] = key_result
-                context["keys_data"] = [
-                    {
-                        "key": key_result["key"],
-                        "value": key_result.get("value"),
-                    }
-                ]
+                key_data = {
+                    "key": key_result["key"],
+                    "value": key_result.get("value"),
+                }
+                # Add redis_key if this is a Redis backend
+                if is_redis and hasattr(cache_panel.cache, "make_key"):
+                    redis_key = cache_panel.cache.make_key(key_result["key"])
+                    key_data["redis_key"] = redis_key
+                context["keys_data"] = [key_data]
                 context["total_keys"] = 1
                 return render(request, "admin/dj_cache_panel/key_search.html", context)
 
@@ -166,14 +173,24 @@ def key_search(request, cache_name: str):
 
             # Build keys_data with basic info
             keys_data = []
-            for key in keys:
-                key_info = cache_panel.get_key(key)
-                keys_data.append(
-                    {
-                        "key": key,
-                        "value": key_info.get("value"),
-                    }
-                )
+            for key_item in keys:
+                # Handle both dict format (from Redis) and string format (from other backends)
+                if isinstance(key_item, dict):
+                    user_key = key_item["key"]
+                    redis_key = key_item.get("redis_key")
+                else:
+                    user_key = key_item
+                    redis_key = None
+
+                key_info = cache_panel.get_key(user_key)
+                key_data = {
+                    "key": user_key,
+                    "value": key_info.get("value"),
+                }
+                # Add redis_key if available (for Redis backends)
+                if redis_key:
+                    key_data["redis_key"] = redis_key
+                keys_data.append(key_data)
 
             context["keys_data"] = keys_data
             context["total_keys"] = total_count

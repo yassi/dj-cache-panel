@@ -591,30 +591,39 @@ class RedisCachePanel(CachePanel):
                 if cursor == 0:
                     break
 
-            # Decode keys if they're bytes
+            # Decode keys if they're bytes and store both prefixed and original keys
             decoded_keys = []
-            for key in all_keys:
-                if isinstance(key, bytes):
-                    key = key.decode("utf-8")
+            for prefixed_key in all_keys:
+                if isinstance(prefixed_key, bytes):
+                    prefixed_key = prefixed_key.decode("utf-8")
+
+                # Store the original prefixed key
+                original_prefixed_key = prefixed_key
 
                 # Remove the cache prefix to get the original key
+                user_key = prefixed_key
                 if hasattr(self.cache, "make_key"):
                     # Try to reverse the make_key transformation
                     # Django/django-redis typically adds prefix like ":1:prefix:key"
                     if hasattr(self.cache, "key_prefix") and self.cache.key_prefix:
-                        if key.startswith(self.cache.key_prefix):
-                            key = key[len(self.cache.key_prefix) :]
+                        if prefixed_key.startswith(self.cache.key_prefix):
+                            user_key = prefixed_key[len(self.cache.key_prefix) :]
 
                     # Remove version prefix (format is :VERSION:key)
-                    if key.startswith(":"):
-                        parts = key.split(":", 2)
+                    if user_key.startswith(":"):
+                        parts = user_key.split(":", 2)
                         if len(parts) >= 3:
-                            key = parts[2]
+                            user_key = parts[2]
 
-                decoded_keys.append(key)
+                decoded_keys.append(
+                    {
+                        "key": user_key,
+                        "redis_key": original_prefixed_key,
+                    }
+                )
 
-            # Sort for consistent pagination
-            decoded_keys.sort()
+            # Sort for consistent pagination (by user key)
+            decoded_keys.sort(key=lambda x: x["key"])
 
             # Apply pagination
             total_count = len(decoded_keys)
