@@ -66,6 +66,14 @@ Get a list of all your caches as well as the allowed capabilities for each cache
 
 ![Instance Overview](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/instance_list.png)
 
+### Key Search
+
+![Key Search](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/key_search.png)
+
+### Key Edits/Adds
+
+![Key Detail](https://raw.githubusercontent.com/yassi/dj-cache-panel/main/images/key_detail.png)
+
 
 ## Installation
 
