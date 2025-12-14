@@ -1,84 +1,107 @@
 # Configuration
 
-Django Cache Panel uses your existing Django `CACHES` setting. No additional configuration is required.
+Django Cache Panel works out of the box with your existing Django `CACHES` configuration. Advanced configuration is optional.
 
-## Using Django CACHES Setting
+## Basic Configuration
 
-Django Cache Panel automatically reads from your `CACHES` setting in `settings.py`:
+The only required configuration is your Django `CACHES` setting:
 
 ```python
 # settings.py
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-    }
-}
-```
-
-The panel will automatically display all cache backends defined in this setting.
-
-## Supported Cache Backends
-
-Django Cache Panel works with any Django cache backend, including:
-
-- **Redis**: `django.core.cache.backends.redis.RedisCache`
-- **Memcached**: `django.core.cache.backends.memcached.PyMemcacheCache`
-- **Local Memory**: `django.core.cache.backends.locmem.LocMemCache`
-- **Database**: `django.core.cache.backends.db.DatabaseCache`
-- **File-based**: `django.core.cache.backends.filebased.FileBasedCache`
-- **Dummy**: `django.core.cache.backends.dummy.DummyCache`
-- **Custom backends**: Any custom cache backend class
-
-## Multiple Cache Backends
-
-You can configure multiple cache backends:
-
-```python
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-    },
-    'session': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     },
-    'api': {
+    'redis': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/2',
-    }
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+    },
 }
 ```
 
-All configured caches will appear in the panel.
+## Advanced Configuration
 
-## Environment-Specific Configuration
-
-You can use different cache configurations based on your environment:
+For advanced use cases, you can customize behavior with `DJ_CACHE_PANEL_SETTINGS`:
 
 ```python
-# settings.py
-import os
-
-if os.getenv('DJANGO_ENV') == 'production':
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': os.getenv('REDIS_URL'),
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        }
-    }
+DJ_CACHE_PANEL_SETTINGS = {
+    # Custom panel mappings
+    "BACKEND_PANEL_EXTENSIONS": {},
+    
+    # Per-cache ability overrides
+    "CACHES": {},
+}
 ```
 
-The panel will show the appropriate configuration for your current environment.
+### Custom Panel Mappings
 
-## Next Steps
+Map custom cache backends to panel classes:
 
-- [Quick Start Guide](quick-start.md) - Get started with your configured caches
-- [Features Overview](features.md) - Learn about all available features
-- [Development Setup](development.md) - Set up for local development
+```python
+DJ_CACHE_PANEL_SETTINGS = {
+    "BACKEND_PANEL_EXTENSIONS": {
+        # Map custom backend to custom panel
+        "myapp.backends.CustomCache": "myapp.panels.CustomCachePanel",
+        
+        # Override built-in backend
+        "django.core.cache.backends.redis.RedisCache": "myapp.panels.MyRedisPanel",
+    },
+}
+```
+
+Panel classes can be specified as:
+
+- **Simple name**: `"RedisCachePanel"` (looked up in `dj_cache_panel.cache_panel`)
+- **Full path**: `"myapp.panels.CustomCachePanel"` (imported dynamically)
+
+### Per-Cache Ability Overrides
+
+Restrict operations for specific caches:
+
+```python
+DJ_CACHE_PANEL_SETTINGS = {
+    "CACHES": {
+        "production_cache": {
+            "abilities": {
+                "query": True,
+                "get_key": True,
+                "delete_key": False,  # Disable deletes
+                "edit_key": False,    # Disable edits
+                "add_key": False,     # Disable adds
+                "flush_cache": False, # Disable flush
+            },
+        },
+    },
+}
+```
+
+Available abilities:
+
+- `query`: List/search keys with patterns
+- `get_key`: View individual key values
+- `delete_key`: Delete keys
+- `edit_key`: Modify key values
+- `add_key`: Create new keys
+- `flush_cache`: Clear all cache entries
+
+## URLs Configuration
+
+By default, the panel is accessible at `/admin/dj-cache-panel/`. You can change this:
+
+```python
+# urls.py
+urlpatterns = [
+    path('admin/cache/', include('dj_cache_panel.urls')),  # Custom path
+    path('admin/', admin.site.urls),
+]
+```
+
+## Security
+
+Django Cache Panel uses Django's built-in admin authentication:
+
+- Only staff users (`is_staff=True`) can access the panel
+- All views require authentication via `@staff_member_required`
+- No additional security configuration needed
+
+To restrict access further, use per-cache ability overrides or implement custom panel classes.

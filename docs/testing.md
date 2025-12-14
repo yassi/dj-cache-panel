@@ -1,140 +1,321 @@
 # Testing
 
-Django Cache Panel includes a test suite to ensure reliability and prevent regressions. This guide covers running tests and understanding the testing infrastructure.
+Comprehensive test suite for Django Cache Panel.
 
-## Test Overview
+## Overview
 
-### Test Structure
+Tests are functional (end-to-end) and target the view layer to ensure complete coverage.
 
-The test suite is organized in the `tests/` directory:
+## Test Structure
 
 ```
 tests/
-├── __init__.py
-├── base.py                 # Base test classes
-├── conftest.py            # Pytest configuration
-└── test_admin.py          # Admin integration tests
+├── base.py              # Base test class and configuration
+├── conftest.py          # Pytest configuration
+├── test_admin.py        # Admin integration tests
+├── test_key_search.py   # Key search functionality
+├── test_add_key.py      # Adding keys
+├── test_edit_key.py     # Editing keys
+├── test_delete_key.py   # Deleting keys
+└── test_flush_cache.py  # Flushing caches
 ```
-
-### Test Types
-
-- **Admin Integration Tests**: Tests for Django admin integration and permissions
 
 ## Running Tests
 
 ### Prerequisites
 
-Before running tests, ensure you have:
-
-- **Development dependencies** installed: `pip install -r requirements.txt`
-- **Package installed in editable mode**: `pip install -e .`
-
-### Quick Test Commands
+Redis and Memcached must be running:
 
 ```bash
-# Run all tests
-pytest
+# Docker (recommended)
+docker-compose up -d
 
-# Run with coverage report
-pytest --cov=dj_cache_panel --cov-report=html
-
-# Run specific test file
-pytest tests/test_admin.py -v
-
-# Run tests in parallel
-pytest -n auto
+# Or individual containers
+docker run -d -p 6379:6379 redis:latest
+docker run -d -p 11211:11211 memcached:latest
 ```
 
-### Detailed Test Commands
+### Run All Tests
 
 ```bash
-# Run tests with debugging
-pytest --pdb
+# Using Make
+make test_local
 
-# Run tests with coverage and HTML report
-pytest --cov=dj_cache_panel --cov-report=html
+# Using pytest directly
+pytest tests/
 
-# Run tests with timing information
-pytest --durations=10
+# With verbose output
+pytest tests/ -v
+```
+
+### Run Specific Tests
+
+```bash
+# Single file
+pytest tests/test_add_key.py
+
+# Single test
+pytest tests/test_add_key.py::TestAddKey::test_add_simple_string_key
+
+# With pattern
+pytest tests/ -k "add_key"
+```
+
+### With Coverage
+
+```bash
+pytest --cov=dj_cache_panel tests/
+
+# HTML report
+pytest --cov=dj_cache_panel --cov-report=html tests/
+open htmlcov/index.html
 ```
 
 ## Test Configuration
 
-### Pytest Configuration
+### Cache Backends (`base.py`)
 
-Tests are configured in `pytest.ini`:
-
-```ini
-[tool:pytest]
-DJANGO_SETTINGS_MODULE = example_project.settings
-testpaths = tests
-addopts = --tb=short --strict-markers
-markers =
-    slow: marks tests as slow (deselect with '-m "not slow"')
-```
-
-### Test Settings
-
-Tests use Django's `override_settings` to configure cache backends:
+Tests run against multiple backends:
 
 ```python
-@override_settings(
-    CACHES={
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        }
-    }
-)
-class CacheTestCase(TestCase):
-    # Test implementation
+TEST_CACHES = {
+    'default': LocMemCache,
+    'locmem': LocMemCache,
+    'database': DatabaseCache,
+    'filesystem': FileBasedCache,
+    'dummy': DummyCache,
+    'redis': RedisCache,
+    'django_redis': DjangoRedisCache,
+    'memcached': MemcachedCache,
+}
 ```
 
-This ensures tests don't require external cache services like Redis.
+### Cache Categories
 
-## Writing Tests
+Tests iterate through categorized caches:
 
-### Test Base Class
+- **QUERY_SUPPORTED_CACHES**: `locmem`, `database`, `redis`, `django_redis`
+- **NON_QUERY_CACHES**: `dummy`, `filesystem`, `memcached`
+- **OPERATIONAL_CACHES**: All except `dummy`
 
-All tests inherit from `CacheTestCase` which provides:
+## Test Patterns
 
-- Admin user creation
-- Authenticated test client
-- Cache configuration via Django settings
+### View Layer Testing
+
+Tests go through Django views (not direct panel access):
 
 ```python
-from tests.base import CacheTestCase
-
-class TestMyFeature(CacheTestCase):
-    def test_something(self):
-        response = self.client.get('/admin/')
-        self.assertEqual(response.status_code, 200)
+def test_add_key(self):
+    for cache_name in OPERATIONAL_CACHES:
+        with self.subTest(cache=cache_name):
+            cache = caches[cache_name]
+            
+            # Test via view
+            url = reverse("dj_cache_panel:key_add", args=[cache_name])
+            response = self.client.post(url, {"key": "test", "value": "val"})
+            
+            # Verify in cache
+            self.assertEqual(cache.get("test"), "val")
 ```
 
-### Example Test
+### SubTests for Multiple Backends
+
+Each test runs against relevant backends:
 
 ```python
-from django.urls import reverse
-from tests.base import CacheTestCase
-
-class TestCachePanel(CacheTestCase):
-    def test_cache_panel_appears_in_admin(self):
-        response = self.client.get('/admin/')
-        self.assertContains(response, 'dj_cache_panel')
-        
-        changelist_url = reverse(
-            'admin:dj_cache_panel_cachepanelplaceholder_changelist'
-        )
-        self.assertContains(response, changelist_url)
+def test_feature(self):
+    for cache_name in QUERY_SUPPORTED_CACHES:
+        with self.subTest(cache=cache_name):
+            # Test implementation
+            pass
 ```
 
 ## Test Coverage
 
-The project aims for high test coverage. Run coverage reports to see which areas need more tests:
+### Admin Integration (`test_admin.py`)
+
+- Panel appears in admin
+- Redirects work correctly
+- Authentication required
+- Staff-only access
+
+### Key Search (`test_key_search.py`)
+
+- Page loads for all backends
+- Wildcard search works
+- Exact key lookup
+- Pagination
+- Empty results
+- Backend-specific messages
+
+### Add Keys (`test_add_key.py`)
+
+- Simple string values
+- JSON values
+- Custom timeouts
+- Success messages
+- Duplicate key handling
+- Authentication required
+
+### Edit Keys (`test_edit_key.py`)
+
+- Update string values
+- Update JSON values
+- Custom timeouts
+- Success messages
+- Non-existent key handling
+- Special characters in keys
+
+### Delete Keys (`test_delete_key.py`)
+
+- Delete existing keys
+- Success messages
+- Non-existent key handling
+- Multiple deletions
+- Special characters in keys
+
+### Flush Cache (`test_flush_cache.py`)
+
+- Removes all keys
+- Success messages
+- Disabled cache handling
+- Authentication required
+
+## Environment Variables
+
+Configure external services:
 
 ```bash
-pytest --cov=dj_cache_panel --cov-report=term-missing
+# Redis
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+
+# Memcached
+export MEMCACHED_HOST=localhost
+export MEMCACHED_PORT=11211
 ```
 
-## Continuous Integration
+## CI/CD Integration
 
-Tests are automatically run in CI/CD pipelines. Make sure all tests pass before submitting pull requests.
+### GitHub Actions
+
+```yaml
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+  memcached:
+    image: memcached:latest
+    ports:
+      - 11211:11211
+
+env:
+  REDIS_HOST: localhost
+  MEMCACHED_HOST: localhost
+```
+
+### GitLab CI
+
+```yaml
+services:
+  - redis:latest
+  - memcached:latest
+
+variables:
+  REDIS_HOST: redis
+  MEMCACHED_HOST: memcached
+```
+
+## Writing Tests
+
+### Test Template
+
+```python
+from .base import CacheTestCase, OPERATIONAL_CACHES
+from django.urls import reverse
+from django.core.cache import caches
+
+class TestMyFeature(CacheTestCase):
+    def test_my_feature(self):
+        for cache_name in OPERATIONAL_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                
+                # Setup
+                cache.set("test_key", "test_value", timeout=300)
+                
+                # Execute
+                url = reverse("dj_cache_panel:view_name", args=[cache_name])
+                response = self.client.get(url)
+                
+                # Assert
+                self.assertEqual(response.status_code, 200)
+```
+
+### Guidelines
+
+1. **Test through views**: Don't access panel classes directly
+2. **Use subTest**: Run against multiple backends
+3. **Clean up**: `setUp` and `tearDown` handle cache clearing
+4. **Be specific**: Use appropriate cache categories
+5. **Check both**: Response status AND cache state
+
+## Debugging Tests
+
+### Run with verbose output
+
+```bash
+pytest tests/ -vv
+```
+
+### Run with print statements
+
+```bash
+pytest tests/ -s
+```
+
+### Run single test with debugger
+
+```bash
+pytest tests/test_add_key.py::TestAddKey::test_add_simple_string_key --pdb
+```
+
+### Check specific cache
+
+```bash
+# Test only LocMem
+pytest tests/ -k "locmem"
+
+# Test only Redis
+pytest tests/ -k "redis"
+```
+
+## Common Issues
+
+### Redis Connection Refused
+
+**Error**: `redis.exceptions.ConnectionError: Error 111 connecting to localhost:6379`
+
+**Solution**: Start Redis:
+```bash
+docker run -d -p 6379:6379 redis:latest
+```
+
+### Memcached Connection Issues
+
+**Error**: Connection errors to Memcached
+
+**Solution**: Start Memcached:
+```bash
+docker run -d -p 11211:11211 memcached:latest
+```
+
+### Database Locked
+
+**Error**: `database is locked`
+
+**Solution**: Using SQLite in tests is fine, but avoid parallel execution:
+```bash
+pytest tests/ -n0  # Disable parallel
+```
