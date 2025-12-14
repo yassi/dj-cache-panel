@@ -10,8 +10,8 @@ BACKEND_PANEL_MAP_DEFAULT = {
     # Local memory cache
     "django.core.cache.backends.locmem.LocMemCache": "LocalMemoryCachePanel",
     # Redis backends (standalone - cluster detection happens in get_cache_panel)
-    "django.core.cache.backends.redis.RedisCache": "RedisCachePanel",
-    "django_redis.cache.RedisCache": "RedisCachePanel",
+    "django.core.cache.backends.redis.RedisCache": "RedisCachePanel",  # Django's built-in (4.0+)
+    "django_redis.cache.RedisCache": "DjangoRedisCachePanel",  # django-redis library
     # Memcached backends
     "django.core.cache.backends.memcached.PyMemcacheCache": "MemcachedCachePanel",
     "django.core.cache.backends.memcached.PyLibMCCache": "MemcachedCachePanel",
@@ -514,7 +514,7 @@ class MemcachedCachePanel(CachePanel):
     }
 
 
-class RedisCachePanel(CachePanel):
+class DjangoRedisCachePanel(CachePanel):
     """
     Implements the cache panel for standalone Redis instances.
 
@@ -645,6 +645,159 @@ class RedisCachePanel(CachePanel):
                 "page": page,
                 "per_page": per_page,
                 "error": str(e),
+            }
+
+
+class RedisCachePanel(CachePanel):
+    """
+    Implements the cache panel for Django's built-in RedisCache backend.
+
+    This is specifically for django.core.cache.backends.redis.RedisCache
+    introduced in Django 4.0+.
+
+    Django's built-in backend uses a simpler key format than django-redis:
+    - Keys are stored as ":VERSION:key" (no key_prefix support in the same way)
+    """
+
+    ABILITIES = {
+        "query": True,
+        "get_key": True,
+        "delete_key": True,
+        "edit_key": True,
+        "add_key": True,
+        "flush_cache": True,
+    }
+
+    def _get_redis_connection(self):
+        """
+        Get the underlying Redis connection for Django's built-in RedisCache.
+
+        Django's RedisCache stores a RedisCacheClient wrapper in _cache attribute.
+        The RedisCacheClient has a get_client() method that returns the actual Redis client.
+        """
+        if hasattr(self.cache, "_cache"):
+            cache_client = self.cache._cache
+            # The RedisCacheClient has a get_client() method
+            if hasattr(cache_client, "get_client"):
+                # get_client() returns the actual redis.Redis instance
+                return cache_client.get_client()
+            elif hasattr(cache_client, "_client"):
+                # Some versions might store it directly
+                client = cache_client._client
+                # Check if _client is a callable or class that needs instantiation
+                if callable(client) and not hasattr(client, "scan"):
+                    # It might be a class, try calling it
+                    return client()
+                return client
+            else:
+                # Try returning the cache_client itself as a fallback
+                return cache_client
+        else:
+            raise AttributeError("Cannot find Redis connection in Django RedisCache")
+
+    def _query(
+        self,
+        pattern: str = "*",
+        page: int = 1,
+        per_page: int = 25,
+        scan_count: int = 100,
+    ):
+        """
+        Scan Redis for keys matching the pattern using the SCAN command.
+
+        Django's built-in RedisCache uses format: ":VERSION:key"
+        """
+        try:
+            connection = self._get_redis_connection()
+        except Exception as e:
+            return {
+                "keys": [],
+                "total_count": 0,
+                "page": page,
+                "per_page": per_page,
+                "error": f"Failed to get Redis connection: {str(e)}",
+            }
+
+        # Scan all keys - Django's built-in backend stores keys as ":VERSION:key"
+        redis_pattern = "*"
+
+        # Use SCAN to get all matching keys
+        all_keys = []
+        cursor = 0
+
+        try:
+            # Use SCAN with pattern matching
+            while True:
+                cursor, keys = connection.scan(
+                    cursor=cursor, match=redis_pattern, count=scan_count
+                )
+                all_keys.extend(keys)
+
+                if cursor == 0:
+                    break
+
+            # Decode keys if they're bytes and transform back to user-facing keys
+            decoded_keys = []
+            for prefixed_key in all_keys:
+                if isinstance(prefixed_key, bytes):
+                    prefixed_key = prefixed_key.decode("utf-8")
+
+                # Store the original prefixed key
+                original_prefixed_key = prefixed_key
+
+                # Remove the version prefix to get the original key
+                # Django's format is ":VERSION:key"
+                user_key = prefixed_key
+                if prefixed_key.startswith(":"):
+                    parts = prefixed_key.split(":", 2)
+                    if len(parts) >= 3:
+                        user_key = parts[2]
+                    elif len(parts) == 2:
+                        user_key = parts[1]
+
+                # Apply pattern matching if provided
+                if pattern and pattern != "*":
+                    if "*" in pattern or "?" in pattern:
+                        # Wildcard pattern - use fnmatch
+                        if not fnmatch.fnmatch(user_key, pattern):
+                            continue
+                    else:
+                        # Exact match
+                        if user_key != pattern:
+                            continue
+
+                decoded_keys.append(
+                    {
+                        "key": user_key,
+                        "redis_key": original_prefixed_key,
+                    }
+                )
+
+            # Sort for consistent pagination (by user key)
+            decoded_keys.sort(key=lambda x: x["key"])
+
+            # Apply pagination
+            total_count = len(decoded_keys)
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            paginated_keys = decoded_keys[start_idx:end_idx]
+
+            return {
+                "keys": paginated_keys,
+                "total_count": total_count,
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            # If SCAN fails, return empty result with error
+            import traceback
+
+            return {
+                "keys": [],
+                "total_count": 0,
+                "page": page,
+                "per_page": per_page,
+                "error": f"SCAN failed: {str(e)}\n{traceback.format_exc()}",
             }
 
 

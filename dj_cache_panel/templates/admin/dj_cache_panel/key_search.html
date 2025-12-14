@@ -20,6 +20,15 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    {% if error %}
+    <div class="messagelist">
+        <div class="error">
+            <strong>Error:</strong><br>
+            <pre style="white-space: pre-wrap; font-family: monospace; font-size: 11px;">{{ error }}</pre>
+        </div>
+    </div>
+    {% endif %}
     
     <!-- Page Header with Title and Flush Button -->
     <div class="key-search-page-header">
@@ -167,7 +176,7 @@
             <thead>
                 <tr>
                     <th scope="col">{% trans 'Key' %}</th>
-                    {% if is_redis %}
+                    {% if keys_data.0.redis_key %}
                     <th scope="col">{% trans 'Redis Key' %}</th>
                     {% endif %}
                 </tr>
@@ -180,9 +189,9 @@
                             <strong>{{ key_info.key }}</strong>
                         </a>
                     </td>
-                    {% if is_redis %}
+                    {% if key_info.redis_key %}
                     <td>
-                        <code class="redis-key-name">{{ key_info.redis_key|default:key_info.key }}</code>
+                        <code class="redis-key-name">{{ key_info.redis_key }}</code>
                     </td>
                     {% endif %}
                 </tr>

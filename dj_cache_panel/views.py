@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.urls import reverse
 
-from dj_cache_panel.cache_panel import get_cache_panel, RedisCachePanel
+from dj_cache_panel.cache_panel import get_cache_panel
 
 
 def _get_page_range(current_page, total_pages, window=2):
@@ -114,9 +114,6 @@ def key_search(request, cache_name: str):
 
     context = admin.site.each_context(request)
 
-    # Check if this is a Redis backend
-    is_redis = isinstance(cache_panel, RedisCachePanel)
-
     context.update(
         {
             "cache_name": cache_name,
@@ -125,7 +122,6 @@ def key_search(request, cache_name: str):
             "get_key_supported": cache_panel.is_feature_supported("get_key"),
             "flush_supported": cache_panel.is_feature_supported("flush_cache"),
             "abilities": cache_panel.abilities,
-            "is_redis": is_redis,
         }
     )
 
@@ -148,10 +144,6 @@ def key_search(request, cache_name: str):
                 key_data = {
                     "key": key_result["key"],
                 }
-                # Add redis_key if this is a Redis backend
-                if is_redis and hasattr(cache_panel.cache, "make_key"):
-                    redis_key = cache_panel.cache.make_key(key_result["key"])
-                    key_data["redis_key"] = redis_key
                 context["keys_data"] = [key_data]
                 context["total_keys"] = 1
                 return render(request, "admin/dj_cache_panel/key_search.html", context)
@@ -175,6 +167,11 @@ def key_search(request, cache_name: str):
 
             keys = query_result["keys"]
             total_count = query_result["total_count"]
+            error = query_result.get("error")
+
+            # If there's an error, show it
+            if error:
+                context["error"] = error
 
             # Build keys_data with basic info (no value fetching)
             keys_data = []
@@ -214,7 +211,16 @@ def key_search(request, cache_name: str):
             context["end_index"] = min(page * per_page, total_count)
 
         except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Error querying cache '{cache_name}': {str(e)}", exc_info=True
+            )
             context["error_message"] = str(e)
+            # Also check if there's an error in the query result
+            if hasattr(e, "args") and e.args:
+                context["error_message"] = f"{str(e)}: {e.args[0] if e.args else ''}"
 
     return render(request, "admin/dj_cache_panel/key_search.html", context)
 
