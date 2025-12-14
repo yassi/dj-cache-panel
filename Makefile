@@ -12,7 +12,8 @@ help:
 	@echo "  make uninstall       		Uninstall package"
 	@echo "  make uninstall_all   		Uninstall all packages"
 	@echo "  make test_install    		Check if package can be imported"
-	@echo "  make test            		Run tests inside Docker dev container"
+	@echo "  make test_docker           Run tests inside Docker dev container"
+	@echo "  make test_local            Run tests inside local environment"
 	@echo "  make test_coverage   		Run tests with coverage report"
 	@echo "  make coverage_html   		Generate HTML coverage report"
 	@echo "  make publish         		Publish package to PyPI"
@@ -51,7 +52,12 @@ test_install: build
 	python -m pip install -e .
 	python -c "import dj_cache_panel; print('✅ Import success!')"
 
-test:
+test_local:
+	@echo "Running tests in local environment..."
+	@python -m pytest tests/ -v
+	@echo "✅ Tests completed"
+
+test_docker:
 	@echo "Starting Docker services..."
 	docker compose up -d
 	@echo "Waiting for services to be ready..."
