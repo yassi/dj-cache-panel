@@ -143,7 +143,9 @@ CACHES = {
     # Filesystem caching (requires directory to be readable/writable by the web server user)
     "filesystem": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": "/var/tmp/django_cache",  # Absolute path to the cache directory
+        "LOCATION": str(
+            BASE_DIR / "cache_files"
+        ),  # Relative path to avoid permission issues
         "TIMEOUT": 60,  # Optional: default timeout in seconds (defaults to 300)
         "OPTIONS": {
             "MAX_ENTRIES": 1000  # Optional: max number of entries before culling starts
@@ -152,20 +154,52 @@ CACHES = {
     # Now external service based caches. please use docker compose to bring up these services locally for testing.
     "memcached": {
         "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
-        "LOCATION": "127.0.0.1:11211",  # Or a list/string of multiple servers for distributed caching
+        "LOCATION": "memcached:11211",  # Or a list/string of multiple servers for distributed caching
     },
-    "redis": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/0",  # URL notation; username/password can be included
+    "django_redis": {
+        "BACKEND": "django_redis.cache.RedisCache",  # third party django-redis cache backend
+        "LOCATION": "redis://redis:6379/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
+    },
+    "redis": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",  # first party django redis cache backend
+        "LOCATION": "redis://redis:6379/0",
     },
     # Custom backend, technically possible but testing is beyond the scope of this project.
     # "custom": {
     #     "BACKEND": "mypackage.backends.whatever.WhateverCache",
     # },
 }
+
+DJ_CACHE_PANEL_SETTINGS = {
+    # Optional: completely replace the default backend-to-panel mapping
+    # "BACKEND_PANEL_MAP": {}
+    # Optional: extend or override specific backend-to-panel mappings
+    # Panel classes can be specified as:
+    #   - Simple class name (e.g., "RedisCachePanel") - for built-in panels
+    #   - Full module path (e.g., "myapp.panels.CustomCachePanel") - for custom panels
+    "BACKEND_PANEL_EXTENSIONS": {
+        # Example: Map a custom backend to a custom panel class
+        # "myapp.backends.CustomCache": "myapp.panels.CustomCachePanel",
+        # Example: Override a built-in backend mapping
+        # "django.core.cache.backends.redis.RedisCache": "myapp.panels.MyRedisCachePanel",
+    },
+    # Optional: per-cache settings overrides
+    # Typically used to lock down a cache instance to only certain abilities
+    "CACHES": {
+        # "redis": {
+        #     "query": True,
+        #     "get_key": True,
+        #     "delete_key": True,
+        #     "edit_key": True,
+        #     "add_key": True,
+        #     "flush_cache": True,
+        # }
+    },
+}
+
 
 # Simple Console Logging Configuration
 LOGGING = {

@@ -5,6 +5,9 @@ from django.conf import settings
 from django.core.cache import caches
 
 
+DJ_CACHE_PANEL_SETTINGS = getattr(settings, "DJ_CACHE_PANEL_SETTINGS", {})
+
+
 # Default Mapping of backend class paths to panel classes
 BACKEND_PANEL_MAP_DEFAULT = {
     # Local memory cache
@@ -24,15 +27,24 @@ BACKEND_PANEL_MAP_DEFAULT = {
     "django.core.cache.backends.dummy.DummyCache": "DummyCachePanel",
 }
 
-BACKEND_PANEL_MAP = getattr(
-    settings, "DJ_CACHE_PANEL_BACKEND_PANEL_MAP", BACKEND_PANEL_MAP_DEFAULT
+# Replace the default backend panel map with any custom mappings. Should realistically never be used.
+BACKEND_PANEL_MAP = DJ_CACHE_PANEL_SETTINGS.get(
+    "BACKEND_PANEL_MAP", BACKEND_PANEL_MAP_DEFAULT
 )
+
+BACKEND_PANEL_EXTENSIONS = DJ_CACHE_PANEL_SETTINGS.get("BACKEND_PANEL_EXTENSIONS", {})
+# Merge the default backend panel map with any custom extensions.
+BACKEND_PANEL_MAP.update(BACKEND_PANEL_EXTENSIONS)
 
 
 def get_cache_panel(cache_name: str):
     """
     Returns the proper CachePanel subclass for the given cache name. This function
     inspects the cache configuration and returns the appropriate subclass.
+
+    The panel class can be specified as:
+    - A simple class name (e.g., "RedisCachePanel") - looked up in this module
+    - A full module path (e.g., "myapp.panels.CustomCachePanel") - imported dynamically
     """
     cache_config = settings.CACHES.get(cache_name)
     if not cache_config:
@@ -42,10 +54,30 @@ def get_cache_panel(cache_name: str):
 
     panel_class_name = BACKEND_PANEL_MAP.get(backend)
     if panel_class_name:
-        # Get the class from this module's globals
-        panel_class = globals().get(panel_class_name)
-        if panel_class:
-            return panel_class(cache_name)
+        # Check if this is a full module path (contains a dot)
+        if "." in panel_class_name:
+            # Dynamic import from module path
+            try:
+                module_path, class_name = panel_class_name.rsplit(".", 1)
+                from importlib import import_module
+
+                module = import_module(module_path)
+                panel_class = getattr(module, class_name, None)
+                if panel_class:
+                    return panel_class(cache_name)
+                else:
+                    raise AttributeError(
+                        f"Class '{class_name}' not found in module '{module_path}'"
+                    )
+            except (ImportError, AttributeError, ValueError) as e:
+                raise ImportError(
+                    f"Failed to import panel class '{panel_class_name}': {str(e)}"
+                )
+        else:
+            # Simple class name - get from this module's globals
+            panel_class = globals().get(panel_class_name)
+            if panel_class:
+                return panel_class(cache_name)
 
     # Fallback to a generic panel for unknown backends
     return GenericCachePanel(cache_name)
