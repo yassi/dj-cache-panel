@@ -420,6 +420,8 @@ class DatabaseCachePanel(CachePanel):
         make_key() method, so raw keys are transformed before storage.
         """
         table_name = self._get_table_name()
+        # quoted table - different databases have different quoting conventions
+        quoted_table_name = connection.ops.quote_name(table_name)
 
         # Convert wildcard pattern to SQL LIKE pattern
         # Django's cache backend will transform keys using make_key(),
@@ -442,7 +444,7 @@ class DatabaseCachePanel(CachePanel):
             # Count total matching keys that haven't expired
             count_sql = f"""
                 SELECT COUNT(*) 
-                FROM {table_name} 
+                FROM {quoted_table_name} 
                 WHERE cache_key LIKE %s AND expires > %s
             """
             cursor.execute(count_sql, [sql_pattern, current_time])
@@ -452,7 +454,7 @@ class DatabaseCachePanel(CachePanel):
             start_idx = (page - 1) * per_page
             keys_sql = f"""
                 SELECT cache_key 
-                FROM {table_name}
+                FROM {quoted_table_name}
                 WHERE cache_key LIKE %s AND expires > %s
                 ORDER BY cache_key
                 LIMIT %s OFFSET %s
