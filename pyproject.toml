@@ -37,7 +37,6 @@ keywords = ["django", "cache", "admin", "panel", "caching", "django-cache"]
 dependencies = [
     "Django>=4.2",
 ]
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
 [project.optional-dependencies]
 dev = [
