@@ -75,8 +75,7 @@ jobs:
       - release-build
       - pypi-publish
     permissions:
-      contents: read
-      pages: write
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -87,7 +86,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install MkDocs
-        run: pip install -r requirements.txt
+        run: pip install mkdocs-material==9.1.12
 
       - name: Build documentation
         run: mkdocs build
