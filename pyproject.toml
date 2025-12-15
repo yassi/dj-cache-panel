@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dj-cache-panel"
-version = "0.2.2"
+version = "0.2.3"
 description = "A Django Admin panel for browsing and inspecting Django cache backends"
 readme = "README.md"
 license = {text = "MIT"}
@@ -37,6 +37,7 @@ keywords = ["django", "cache", "admin", "panel", "caching", "django-cache"]
 dependencies = [
     "Django>=4.2",
 ]
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
 [project.optional-dependencies]
 dev = [
