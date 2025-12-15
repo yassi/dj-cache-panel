@@ -436,16 +436,29 @@ class DatabaseCachePanel(CachePanel):
             sql_pattern = "%"
 
         # Get current time as Unix timestamp
-        # The database cache backend stores expires as a decimal/float timestamp
+        # The database cache backend stores expires differently by database:
+        # - SQLite: decimal/float timestamp (numeric)
+        # - PostgreSQL: timestamp with time zone
+        # - MySQL: can vary based on Django version and configuration
+        # - Oracle: timestamp
+        # We need to handle both cases
         current_time = time.time()
 
         # Query for keys that match the pattern and haven't expired
         with connection.cursor() as cursor:
+            if connection.vendor in ("postgresql", "oracle"):
+                expires_condition = "expires > to_timestamp(%s)"
+            elif connection.vendor == "mysql":
+                expires_condition = "expires > FROM_UNIXTIME(%s)"
+            else:
+                # SQLite and others store as numeric
+                expires_condition = "expires > %s"
+
             # Count total matching keys that haven't expired
             count_sql = f"""
                 SELECT COUNT(*) 
                 FROM {quoted_table_name} 
-                WHERE cache_key LIKE %s AND expires > %s
+                WHERE cache_key LIKE %s AND {expires_condition}
             """
             cursor.execute(count_sql, [sql_pattern, current_time])
             total_count = cursor.fetchone()[0]
@@ -455,7 +468,7 @@ class DatabaseCachePanel(CachePanel):
             keys_sql = f"""
                 SELECT cache_key 
                 FROM {quoted_table_name}
-                WHERE cache_key LIKE %s AND expires > %s
+                WHERE cache_key LIKE %s AND {expires_condition}
                 ORDER BY cache_key
                 LIMIT %s OFFSET %s
             """
