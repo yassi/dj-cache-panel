@@ -74,7 +74,23 @@ jobs:
     needs:
       - release-build
       - pypi-publish
+    permissions:
+      contents: read
+      pages: write
     steps:
-      - name: Publish documentation to GitHub Pages using MkDocs
-        run: |
-          make docs_push
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install MkDocs
+        run: pip install -r requirements.txt
+
+      - name: Build documentation
+        run: mkdocs build
+
+      - name: Deploy MkDocs
+        run: mkdocs gh-deploy --force
