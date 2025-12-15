@@ -26,6 +26,13 @@ jobs:
       memcached:
         image: memcached:1.6
         ports: ["11211:11211"]
+      postgres:
+        image: postgres:16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
 
     steps:
       - name: Checkout code
