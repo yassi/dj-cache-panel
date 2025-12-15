@@ -24,17 +24,6 @@ REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 MEMCACHED_HOST = os.environ.get("MEMCACHED_HOST", "localhost")
 MEMCACHED_PORT = os.environ.get("MEMCACHED_PORT", "11211")
 
-# PostgreSQL configuration for testing
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.environ.get("POSTGRES_PORT", "5432")
-POSTGRES_USER = os.environ.get("POSTGRES_USER", "postgres")
-POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "postgres")
-POSTGRES_DB = os.environ.get("POSTGRES_DB", "postgres")
-
-# Database backend selection for tests
-# Can be 'sqlite' or 'postgresql'
-TEST_DB_BACKEND = os.environ.get("TEST_DB_BACKEND", "postgresql").lower()
-
 # Define cache configurations for testing
 # Redis and Memcached are assumed to be available
 TEST_CACHES = {

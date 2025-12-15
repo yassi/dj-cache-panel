@@ -51,6 +51,13 @@ jobs:
       - name: Run tests with coverage
         run: |
             pytest --cov=dj_cache_panel --cov-report=xml
+        env:
+          TEST_DB_BACKEND: postgresql
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
