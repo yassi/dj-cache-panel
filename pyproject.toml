@@ -38,6 +38,9 @@ dependencies = [
     "Django>=4.2",
 ]
 
+[project.entry-points."dj_control_room.panels"]
+dj_cache_panel = "dj_cache_panel.panel:CachePanel"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
