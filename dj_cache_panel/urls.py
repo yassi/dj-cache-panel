@@ -11,7 +11,7 @@ urlpatterns = [
         name="key_search",
     ),
     path(
-        "<str:cache_name>/keys/<str:key>/",
+        "<str:cache_name>/keys/<path:key>/",
         views.key_detail,
         name="key_detail",
     ),
