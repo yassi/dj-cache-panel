@@ -7,6 +7,7 @@ from django.contrib import admin, messages
 from django.urls import reverse
 
 from dj_cache_panel.cache_panel import get_cache_panel
+from dj_cache_panel.conf import get_css_context
 
 
 def _get_page_range(current_page, total_pages, window=2):
@@ -76,7 +77,7 @@ def index(request):
             caches_info.append(cache_info)
 
     context = admin.site.each_context(request)
-
+    context.update(get_css_context())
     context.update(
         {
             "caches_info": caches_info,
@@ -113,7 +114,7 @@ def key_search(request, cache_name: str):
                 return redirect(reverse("dj_cache_panel:key_search", args=[cache_name]))
 
     context = admin.site.each_context(request)
-
+    context.update(get_css_context())
     context.update(
         {
             "cache_name": cache_name,
@@ -302,6 +303,7 @@ def key_detail(request, cache_name: str, key: str):
     key_exists = key_result.get("exists", False)
 
     context = admin.site.each_context(request)
+    context.update(get_css_context())
     context.update(
         {
             "cache_name": cache_name,
@@ -385,6 +387,7 @@ def key_add(request, cache_name: str):
 
     # GET request - display the form
     context = admin.site.each_context(request)
+    context.update(get_css_context())
     context.update(
         {
             "cache_name": cache_name,

@@ -105,3 +105,31 @@ Django Cache Panel uses Django's built-in admin authentication:
 - No additional security configuration needed
 
 To restrict access further, use per-cache ability overrides or implement custom panel classes.
+
+## CSS Customization
+
+### `LOAD_DEFAULT_CSS`
+
+**Type:** `bool`  
+**Default:** `True`  
+**Description:** Whether to load the built-in Cache Panel stylesheet. Set to `False` to use your own styles from scratch.
+
+### `EXTRA_CSS`
+
+**Type:** `list[str]`  
+**Default:** `[]`  
+**Description:** Additional stylesheets to load after the default CSS. Accepts static file paths or full URLs.
+
+Static file paths are **relative to your app's `static/` subdirectory** (same convention as Django's `{% static %}` tag). A file at `myapp/static/myapp/css/overrides.css` is referenced as `myapp/css/overrides.css`.
+
+```python
+DJ_CACHE_PANEL_SETTINGS = {
+    'LOAD_DEFAULT_CSS': True,
+    'EXTRA_CSS': [
+        # File lives at: myapp/static/myapp/css/overrides.css
+        'myapp/css/overrides.css',
+        # Full URLs are also supported
+        'https://cdn.example.com/theme.css',
+    ],
+}
+```
