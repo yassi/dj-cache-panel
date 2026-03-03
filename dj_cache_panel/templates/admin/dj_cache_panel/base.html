@@ -5,9 +5,10 @@
 
 {% block extrahead %}
 {{ block.super }}
-<style type="text/css">
+{% if dj_cr_load_default_css %}<style type="text/css">
     {% include "admin/dj_cache_panel/styles.css" %}
-</style>
+</style>{% endif %}
+{{ dj_cr_extra_css }}
 {% endblock %}
 
 {% block branding %}

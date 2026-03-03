@@ -118,6 +118,12 @@ define any of these
 
 ```python
 DJ_CACHE_PANEL_SETTINGS = {
+    # CSS: load built-in styles and/or inject your own
+    "LOAD_DEFAULT_CSS": True,
+    # Static paths are relative to app's static/ dir (e.g. 'myapp/css/overrides.css'
+    # for a file at myapp/static/myapp/css/overrides.css). Full URLs also accepted.
+    "EXTRA_CSS": [],
+
     # Optional: completely replace the default backend-to-panel mapping
     # "BACKEND_PANEL_MAP": {}
     #
