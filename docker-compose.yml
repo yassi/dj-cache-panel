@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   # Development container
@@ -7,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: example_project/Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.10}
+        INSTALL_VALKEY: ${INSTALL_VALKEY:-false}
     ports:
       - "8000:8000"
     volumes:
@@ -31,6 +32,12 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+  
+  valkey:
+    image: valkey/valkey:9
+    command: ["valkey-server", "--port", "6380"]
+    ports:
+      - "6380:6380"
 
   memcached:
     image: memcached:1.6

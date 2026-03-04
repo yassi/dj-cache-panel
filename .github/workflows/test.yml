@@ -5,24 +5,46 @@ on: [push]
 jobs:
   python-tests:
     runs-on: ubuntu-latest
-    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
-    strategy:
-      matrix:
-        python-version: [3.9, 3.14]
-        django-version: [4.2, 5.2, 6.0]
-        exclude:
-          # Django 5.0+ requires Python 3.10+
-          - python-version: 3.9
-            django-version: 6.0
-          - python-version: 3.9
-            django-version: 5.2
-          - python-version: 3.14
-            django-version: 4.2
+    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}${{ matrix.valkey && ' (valkey)' || '' }}
 
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        django-version: ["4.2", "5.2", "6.0"]
+        valkey: [false, true]
+        exclude:
+          # -------------------------------------------------
+          # django 6.0 requires python >=3.12
+          # -------------------------------------------------
+          - python-version: "3.9"
+            django-version: "6.0"
+          - python-version: "3.10"
+            django-version: "6.0"
+          - python-version: "3.11"
+            django-version: "6.0"
+          # -------------------------------------------------
+          # django 5.2 requires python >=3.10
+          # -------------------------------------------------
+          - python-version: "3.9"
+            django-version: "5.2"
+          # -------------------------------------------------
+          # django 4.2 
+          # -------------------------------------------------
+          - python-version: "3.14"
+            django-version: "4.2"
+          # -------------------------------------------------
+          # valkey requires python >=3.10
+          # -------------------------------------------------
+          - python-version: "3.9"
+            valkey: true
     services:
       redis:
         image: redis:7.4.1
         ports: ["6379:6379"]
+      valkey:
+        image: valkey/valkey:9.0.0
+        ports: ["6380:6379"]
       memcached:
         image: memcached:1.6
         ports: ["11211:11211"]
@@ -37,7 +59,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -45,12 +66,16 @@ jobs:
 
       - name: Install package and dependencies
         run: |
-            make install
-            pip install "Django~=${{ matrix.django-version }}.0"
+          if [ "${{ matrix.valkey }}" = "false" ]; then
+            pip install .[dev]
+          else
+            pip install .[dev,valkey]
+
+          fi
+          pip install "Django~=${{ matrix.django-version }}.0"
 
       - name: Run tests with coverage
-        run: |
-            pytest --cov=dj_cache_panel --cov-report=xml
+        run: pytest --cov=dj_cache_panel --cov-report=xml
         env:
           TEST_DB_BACKEND: postgresql
           POSTGRES_HOST: localhost
@@ -58,10 +83,17 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          VALKEY_HOST: localhost
+          VALKEY_PORT: 6380
+          MEMCACHED_HOST: localhost
+          MEMCACHED_PORT: 11211
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests,python-${{ matrix.python-version }},django-${{ matrix.django-version }}
+          flags: >
+            unittests,python-${{ matrix.python-version }},django-${{ matrix.django-version }}${{ matrix.valkey && ',valkey' || '' }}
           fail_ci_if_error: true

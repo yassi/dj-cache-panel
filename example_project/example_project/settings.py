@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import importlib
 import os
 from pathlib import Path
 
@@ -186,11 +187,18 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",  # first party django redis cache backend
         "LOCATION": "redis://redis:6379/0",
     },
+   
+    
     # Custom backend, technically possible but testing is beyond the scope of this project.
     # "custom": {
     #     "BACKEND": "mypackage.backends.whatever.WhateverCache",
     # },
 }
+if importlib.util.find_spec("django_valkey") is not None:
+    CACHES["django_valkey"] = {
+        "BACKEND": "django_valkey.cache.ValkeyCache",
+        "LOCATION": "valkey://valkey:6380/0",
+    }
 
 DJ_CACHE_PANEL_SETTINGS = {
     # Optional: completely replace the default backend-to-panel mapping

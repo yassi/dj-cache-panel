@@ -6,6 +6,25 @@
 pip install dj-cache-panel
 ```
 
+### Optional: Valkey Support
+
+To enable support for the **Valkey** cache backend, install the optional dependency:
+
+```bash
+pip install dj-cache-panel[valkey]
+```
+
+**Requirements:**
+- Python 3.9-3.14
+- The `django-valkey` package will be installed automatically
+
+**What You Get:**
+- Support for Valkey cache backend in the Cache Panel
+- Ability to browse, search, and manage Valkey cache keys
+- Full feature parity with Redis cache panel
+
+If you don't need Valkey support, the base installation (`pip install dj-cache-panel`) works perfectly fine.
+
 ## 2. Add to Django Settings
 
 Add `dj_cache_panel` to your `INSTALLED_APPS`:

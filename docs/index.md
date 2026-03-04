@@ -25,6 +25,7 @@ All Django cache backends are supported with varying levels of functionality:
 | DatabaseCache | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | RedisCache (Django) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | RedisCache (django-redis) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ValkeyCache (django-valkey) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | FileBasedCache | — | ✓ | ✓ | ✓ | ✓ | ✓ |
 | MemcachedCache | — | ✓ | ✓ | ✓ | ✓ | ✓ |
 | DummyCache | — | — | — | — | — | — |
@@ -49,7 +50,7 @@ defined classes that can customize logic for these abilities.
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.9-3.14
 - Django 4.2+
 
 ## License
