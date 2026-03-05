@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/dj-cache-panel.svg)](https://badge.fury.io/py/dj-cache-panel)
 [![Python versions](https://img.shields.io/pypi/pyversions/dj-cache-panel.svg)](https://pypi.org/project/dj-cache-panel/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-
+[![Downloads](https://img.shields.io/pypi/dm/dj-cache-panel.svg)](https://pypi.org/project/dj-cache-panel/)
 
 
 
