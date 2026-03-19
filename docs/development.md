@@ -27,16 +27,9 @@ make docker_up       # Start all services
 make docker_shell    # Open shell in container
 ```
 
-**With Valkey Support:**
-```bash
-INSTALL_VALKEY=true make docker_up
-INSTALL_VALKEY=true make docker_shell
-```
-
 **With Different Python Version:**
 ```bash
 PYTHON_VERSION=3.11 make docker_up
-PYTHON_VERSION=3.11 INSTALL_VALKEY=true make docker_up
 ```
 
 Services included:
@@ -55,10 +48,6 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install package and dependencies
 make install
-
-# Or with Valkey support
-INSTALL_VALKEY=true make install
-```
 
 Alternative manual installation:
 ```bash
@@ -109,25 +98,11 @@ make test_docker
 make test_local
 ```
 
-### Testing with Valkey Support
-
-```bash
-# Docker with Valkey
-INSTALL_VALKEY=true make test_docker
-
-# Local (requires Valkey installed: pip install django-valkey)
-INSTALL_VALKEY=true make test_local
-```
-
 ### Testing with Different Python Versions
 
 ```bash
 # Docker with Python 3.11
 PYTHON_VERSION=3.11 make test_docker
-
-# Docker with Python 3.11 and Valkey
-PYTHON_VERSION=3.11 INSTALL_VALKEY=true make test_docker
-```
 
 **Note:** Valkey support is optional and depends on `django-valkey`. If it's not installed, Valkey tests are automatically skipped.
 
@@ -215,7 +190,6 @@ When developing or testing, you can use these environment variables to control t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `INSTALL_VALKEY` | `false` | Install `django-valkey` optional dependency |
 | `PYTHON_VERSION` | `3.10` | Python version to use in Docker containers |
 
 ### Examples
@@ -225,15 +199,8 @@ When developing or testing, you can use these environment variables to control t
 make install
 make test_docker
 
-# With Valkey support (local)
-INSTALL_VALKEY=true make install
-
 # Different Python version (Docker)
 PYTHON_VERSION=3.11 make docker_up
-
-# All options combined
-PYTHON_VERSION=3.12 INSTALL_VALKEY=true make test_docker
-```
 
 ## Making Changes
 
