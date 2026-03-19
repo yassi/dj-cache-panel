@@ -111,6 +111,13 @@ Clear all entries from a cache:
 - **Get/Edit/Add/Delete/Flush**: ✓
 - Shows Redis key name (with prefix)
 
+### ValkeyCache (Django & django-valkey, optional)
+
+- **Query**: ✓ (Valkey SCAN with pattern matching)
+- **Get/Edit/Add/Delete/Flush**: ✓
+- Shows Valkey key name (with prefix)
+
+
 ### FileBasedCache
 
 - **Query**: ✗ (keys stored as hashed filenames)

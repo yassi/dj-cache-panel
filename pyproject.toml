@@ -18,8 +18,6 @@ requires-python = ">=3.9"
 classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.0",
-    "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
     "License :: OSI Approved :: MIT License",
@@ -35,7 +33,7 @@ classifiers = [
 ]
 keywords = ["django", "cache", "admin", "panel", "caching", "django-cache"]
 dependencies = [
-    "Django>=4.2",
+    "django>=4.2"
 ]
 
 [project.entry-points."dj_control_room.panels"]
@@ -50,8 +48,12 @@ dev = [
     "pymemcache>=4.0.0",
     "django-redis>=5.0.0",
     "psycopg2-binary>=2.9.0",
-    "mkdocs-material>=9.1.12",
+    "mkdocs-material>=9.1.12"
 ]
+valkey = [
+    "django-valkey>=0.4.0",
+]
+
 build = [
     "build>=1.0.0",
     "twine>=4.0.0",
