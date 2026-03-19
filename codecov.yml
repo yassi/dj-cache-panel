@@ -25,3 +25,4 @@ ignore:
   - "setup.py"
   - "docs/"
   - "*.md"
+  - "dj_cache_panel/panel.py"

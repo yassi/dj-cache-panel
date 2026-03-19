@@ -305,4 +305,4 @@ PYTHON_VERSION=3.11 make test_docker
 make test_local
 ```
 
-**Note:** When using python 3.10 or greater, valkey support will be enabled.
+**Note:** When using python 3.10 or greater you can enable valkey support by using the django-valkey package
