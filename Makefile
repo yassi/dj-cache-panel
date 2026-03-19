@@ -52,7 +52,7 @@ install_requirements:
 	python -m pip install -r requirements.txt
 
 install: install_requirements
-	@if [ "$(INSTALL_VALKEY)" = "true" ] && python -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then \
+	@if python -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then \
 		echo "Installing with valkey support (Python 3.10+)..."; \
 		python -m pip install -e .[dev,valkey]; \
 	else \
