@@ -7,8 +7,13 @@ ensuring the full request/response cycle works correctly.
 Tests are run against multiple cache backends to ensure compatibility.
 """
 
+from unittest.mock import patch
+
 from django.core.cache import caches
 from django.urls import reverse
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+from dj_cache_panel.cache_panel import get_cache_panel as real_get_cache_panel
 
 from .base import CacheTestCase, QUERY_SUPPORTED_CACHES, NON_QUERY_CACHES
 
@@ -219,6 +224,17 @@ class TestKeySearchView(CacheTestCase):
                 # Just verify the page loads and shows the cache name
                 self.assertContains(response, cache_name)
 
+    def test_key_search_query_exception_shows_error_message(self):
+        """Pattern query: view catches panel.query exceptions (views key_search)."""
+        with patch.object(
+            LocalMemoryCachePanel, "query", side_effect=RuntimeError("query failed")
+        ):
+            url = reverse("dj_cache_panel:key_search", args=["locmem"])
+            response = self.client.get(url, {"q": "pat*"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "query failed")
+
 
 class TestIndexView(CacheTestCase):
     """Test cases for the index view cache list."""
@@ -288,3 +304,17 @@ class TestIndexView(CacheTestCase):
         self.assertContains(response, "DatabaseCache")
         self.assertContains(response, "FileBasedCache")
         self.assertContains(response, "DummyCache")
+
+    def test_index_shows_panel_error_when_get_cache_panel_fails(self):
+        """Index: one failing get_cache_panel still lists the cache with error text."""
+
+        def _selective(cache_name):
+            if cache_name == "locmem":
+                raise RuntimeError("panel unavailable")
+            return real_get_cache_panel(cache_name)
+
+        with patch("dj_cache_panel.views.get_cache_panel", side_effect=_selective):
+            response = self.client.get(reverse("dj_cache_panel:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "panel unavailable")

@@ -2,8 +2,13 @@
 Tests for cache flush functionality.
 """
 
+from unittest.mock import patch
+
 from django.urls import reverse
 from django.core.cache import caches
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+
 from .base import CacheTestCase, OPERATIONAL_CACHES
 
 
@@ -86,3 +91,20 @@ class TestFlushCache(CacheTestCase):
         # The view checks flush_supported before processing, so it won't redirect
         # It will just return the page with no action taken
         self.assertEqual(response.status_code, 200)
+
+    def test_flush_cache_error_message_when_flush_raises(self):
+        """POST flush: exceptions from flush_cache become an error message + redirect."""
+        url = reverse("dj_cache_panel:key_search", args=["locmem"])
+        with patch.object(
+            LocalMemoryCachePanel, "flush_cache", side_effect=RuntimeError("flush boom")
+        ):
+            response = self.client.post(url, {"action": "flush"}, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(
+            any(
+                "Error flushing cache" in str(m) and "flush boom" in str(m)
+                for m in messages
+            )
+        )

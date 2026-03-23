@@ -2,11 +2,16 @@
 Tests for editing/updating cache keys.
 """
 
+import json
+from unittest.mock import patch
+from urllib.parse import quote
+
 from django.urls import reverse
 from django.core.cache import caches
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+
 from .base import CacheTestCase, OPERATIONAL_CACHES
-import json
-from urllib.parse import quote
 
 
 class TestEditKey(CacheTestCase):
@@ -215,3 +220,41 @@ class TestEditKey(CacheTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, "view_test_key")
                 self.assertContains(response, "test_value")
+
+    def test_edit_shows_error_when_update_raises(self):
+        """POST update: edit_key exceptions become messages.error (no redirect)."""
+        cache = caches["locmem"]
+        cache.set("err_edit_key", "x", timeout=300)
+        url = reverse(
+            "dj_cache_panel:key_detail", args=["locmem", quote("err_edit_key")]
+        )
+        with patch.object(
+            LocalMemoryCachePanel, "edit_key", side_effect=RuntimeError("edit boom")
+        ):
+            response = self.client.post(url, {"action": "update", "value": "y"})
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(
+            any(
+                "Error updating key" in str(m) and "edit boom" in str(m)
+                for m in messages
+            )
+        )
+
+    def test_edit_invalid_timeout_shows_error(self):
+        """Invalid timeout string: ValueError path shows Invalid timeout value message."""
+        cache = caches["locmem"]
+        cache.set("bad_timeout_key", "x", timeout=300)
+        url = reverse(
+            "dj_cache_panel:key_detail", args=["locmem", quote("bad_timeout_key")]
+        )
+        response = self.client.post(
+            url,
+            {"action": "update", "value": "y", "timeout": "not-a-number"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(any("Invalid timeout value" in str(m) for m in messages))
+        self.assertEqual(cache.get("bad_timeout_key"), "x")

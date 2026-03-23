@@ -2,10 +2,15 @@
 Tests for adding cache keys.
 """
 
+import json
+from unittest.mock import patch
+
 from django.urls import reverse
 from django.core.cache import caches
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+
 from .base import CacheTestCase, OPERATIONAL_CACHES
-import json
 
 
 class TestAddKey(CacheTestCase):
@@ -155,3 +160,40 @@ class TestAddKey(CacheTestCase):
 
                 # Verify value was overwritten
                 self.assertEqual(cache.get("duplicate_key"), "new_value")
+
+    def test_add_key_shows_error_when_edit_raises(self):
+        """POST add: edit_key exceptions become messages.error (no redirect)."""
+        url = reverse("dj_cache_panel:key_add", args=["locmem"])
+        with patch.object(
+            LocalMemoryCachePanel, "edit_key", side_effect=RuntimeError("create boom")
+        ):
+            response = self.client.post(
+                url, {"key": "new_err_key", "value": "val"}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(
+            any(
+                "Error creating key" in str(m) and "create boom" in str(m)
+                for m in messages
+            )
+        )
+
+    def test_add_key_invalid_timeout_shows_error(self):
+        """Negative timeout triggers ValueError branch for Invalid timeout value."""
+        url = reverse("dj_cache_panel:key_add", args=["locmem"])
+        response = self.client.post(
+            url, {"key": "k_timeout_bad", "value": "v", "timeout": "-1"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(
+            any(
+                "Invalid timeout value" in str(m)
+                and "non-negative" in str(m).lower()
+                for m in messages
+            )
+        )
+        self.assertIsNone(caches["locmem"].get("k_timeout_bad"))
