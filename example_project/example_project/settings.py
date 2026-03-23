@@ -155,7 +155,7 @@ CACHES = {
     "dummy": {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     },
-    # Used to verify dynamic panel import (full module path in BACKEND_PANEL_EXTENSIONS)
+    # Used to verify dynamic panel import (full module path in BACKEND_PANEL_EXTENSIONS,) this is just for testing.
     "example_dynamic_panel": {
         "BACKEND": "example_project.backends.ExampleDummyCache",
     },
@@ -191,8 +191,6 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",  # first party django redis cache backend
         "LOCATION": "redis://redis:6379/0",
     },
-   
-    
     # Custom backend, technically possible but testing is beyond the scope of this project.
     # "custom": {
     #     "BACKEND": "mypackage.backends.whatever.WhateverCache",
