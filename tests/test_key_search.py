@@ -138,6 +138,33 @@ class TestKeySearchView(CacheTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, "showing 11 to 20")
 
+    def test_key_search_pagination_large(self):
+        """
+        When total_pages > 7, pagination uses _get_page_range (ellipsis + window).
+
+        With 9 pages and page=5, the range is [1, '...', 3–7, '...', 9], covering
+        both ellipsis branches and the middle page loop in views._get_page_range.
+        """
+        for cache_name in QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                prefix = f"largepag{cache_name}"
+                for i in range(90):
+                    cache.set(f"{prefix}:key{i:03d}", f"value{i}")
+
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(
+                    url,
+                    {"q": f"{prefix}:*", "per_page": "10", "page": "5"},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Found 90 keys")
+                self.assertContains(response, "showing 41 to 50")
+                # Template renders page_range "..." as Unicode ellipsis (…)
+                self.assertContains(response, "\u2026")
+                self.assertContains(response, '<span class="this-page">5</span>')
+
     def test_key_search_per_page_option(self):
         """Test that per_page option is respected."""
         for cache_name in QUERY_SUPPORTED_CACHES:
