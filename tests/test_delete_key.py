@@ -2,10 +2,15 @@
 Tests for deleting cache keys.
 """
 
+from unittest.mock import patch
+
 from django.urls import reverse
 from django.core.cache import caches
-from .base import CacheTestCase, OPERATIONAL_CACHES
 from urllib.parse import quote
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+
+from .base import CacheTestCase, OPERATIONAL_CACHES
 
 
 class TestDeleteKey(CacheTestCase):
@@ -170,3 +175,24 @@ class TestDeleteKey(CacheTestCase):
                     response = self.client.post(url, {"action": "delete"})
                     self.assertEqual(response.status_code, 302)
                     self.assertIsNone(cache.get(key))
+
+    def test_delete_shows_error_when_delete_raises(self):
+        """POST delete: exceptions from delete_key surface as messages.error (no redirect)."""
+        cache = caches["locmem"]
+        cache.set("err_delete_key", "v", timeout=300)
+        url = reverse(
+            "dj_cache_panel:key_detail", args=["locmem", quote("err_delete_key")]
+        )
+        with patch.object(
+            LocalMemoryCachePanel, "delete_key", side_effect=RuntimeError("delete boom")
+        ):
+            response = self.client.post(url, {"action": "delete"})
+
+        self.assertEqual(response.status_code, 200)
+        messages = list(response.context["messages"])
+        self.assertTrue(
+            any(
+                "Error deleting key" in str(m) and "delete boom" in str(m)
+                for m in messages
+            )
+        )

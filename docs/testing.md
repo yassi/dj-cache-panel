@@ -53,26 +53,6 @@ pytest tests/
 pytest tests/ -v
 ```
 
-### Testing with Valkey Support
-
-Django Cache Panel includes comprehensive testing for the optional Valkey backend:
-
-```bash
-# Test with Valkey support enabled (Docker)
-INSTALL_VALKEY=true make test_docker
-
-# Test locally with Valkey
-INSTALL_VALKEY=true make test_local
-
-# Test with specific Python version
-PYTHON_VERSION=3.11 INSTALL_VALKEY=true make test_docker
-```
-
-**Note:** When `INSTALL_VALKEY=false`:
-- `django_valkey` is not installed
-- Tests automatically skip Valkey backend
-- All other cache backends are tested normally
-
 ### Run Specific Tests
 
 ```bash

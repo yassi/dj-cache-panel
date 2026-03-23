@@ -155,6 +155,10 @@ CACHES = {
     "dummy": {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     },
+    # Used to verify dynamic panel import (full module path in BACKEND_PANEL_EXTENSIONS,) this is just for testing.
+    "example_dynamic_panel": {
+        "BACKEND": "example_project.backends.ExampleDummyCache",
+    },
     # Database caching (requires running 'python manage.py createcachetable my_cache_table')
     "database": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
@@ -187,8 +191,6 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",  # first party django redis cache backend
         "LOCATION": "redis://redis:6379/0",
     },
-   
-    
     # Custom backend, technically possible but testing is beyond the scope of this project.
     # "custom": {
     #     "BACKEND": "mypackage.backends.whatever.WhateverCache",
@@ -212,6 +214,7 @@ DJ_CACHE_PANEL_SETTINGS = {
         # "myapp.backends.CustomCache": "myapp.panels.CustomCachePanel",
         # Example: Override a built-in backend mapping
         # "django.core.cache.backends.redis.RedisCache": "myapp.panels.MyRedisCachePanel",
+        "example_project.backends.ExampleDummyCache": "example_project.backends.ExamplePanel",
     },
     # Optional: per-cache settings overrides
     # Typically used to lock down a cache instance to only certain abilities

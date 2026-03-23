@@ -7,8 +7,13 @@ ensuring the full request/response cycle works correctly.
 Tests are run against multiple cache backends to ensure compatibility.
 """
 
+from unittest.mock import patch
+
 from django.core.cache import caches
 from django.urls import reverse
+
+from dj_cache_panel.cache_panel import LocalMemoryCachePanel
+from dj_cache_panel.cache_panel import get_cache_panel as real_get_cache_panel
 
 from .base import CacheTestCase, QUERY_SUPPORTED_CACHES, NON_QUERY_CACHES
 
@@ -138,6 +143,33 @@ class TestKeySearchView(CacheTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, "showing 11 to 20")
 
+    def test_key_search_pagination_large(self):
+        """
+        When total_pages > 7, pagination uses _get_page_range (ellipsis + window).
+
+        With 9 pages and page=5, the range is [1, '...', 3–7, '...', 9], covering
+        both ellipsis branches and the middle page loop in views._get_page_range.
+        """
+        for cache_name in QUERY_SUPPORTED_CACHES:
+            with self.subTest(cache=cache_name):
+                cache = caches[cache_name]
+                prefix = f"largepag{cache_name}"
+                for i in range(90):
+                    cache.set(f"{prefix}:key{i:03d}", f"value{i}")
+
+                url = reverse("dj_cache_panel:key_search", args=[cache_name])
+                response = self.client.get(
+                    url,
+                    {"q": f"{prefix}:*", "per_page": "10", "page": "5"},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Found 90 keys")
+                self.assertContains(response, "showing 41 to 50")
+                # Template renders page_range "..." as Unicode ellipsis (…)
+                self.assertContains(response, "\u2026")
+                self.assertContains(response, '<span class="this-page">5</span>')
+
     def test_key_search_per_page_option(self):
         """Test that per_page option is respected."""
         for cache_name in QUERY_SUPPORTED_CACHES:
@@ -191,6 +223,17 @@ class TestKeySearchView(CacheTestCase):
                 # Different backends may show different messages
                 # Just verify the page loads and shows the cache name
                 self.assertContains(response, cache_name)
+
+    def test_key_search_query_exception_shows_error_message(self):
+        """Pattern query: view catches panel.query exceptions (views key_search)."""
+        with patch.object(
+            LocalMemoryCachePanel, "query", side_effect=RuntimeError("query failed")
+        ):
+            url = reverse("dj_cache_panel:key_search", args=["locmem"])
+            response = self.client.get(url, {"q": "pat*"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "query failed")
 
 
 class TestIndexView(CacheTestCase):
@@ -261,3 +304,17 @@ class TestIndexView(CacheTestCase):
         self.assertContains(response, "DatabaseCache")
         self.assertContains(response, "FileBasedCache")
         self.assertContains(response, "DummyCache")
+
+    def test_index_shows_panel_error_when_get_cache_panel_fails(self):
+        """Index: one failing get_cache_panel still lists the cache with error text."""
+
+        def _selective(cache_name):
+            if cache_name == "locmem":
+                raise RuntimeError("panel unavailable")
+            return real_get_cache_panel(cache_name)
+
+        with patch("dj_cache_panel.views.get_cache_panel", side_effect=_selective):
+            response = self.client.get(reverse("dj_cache_panel:index"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "panel unavailable")

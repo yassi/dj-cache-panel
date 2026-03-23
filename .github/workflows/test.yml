@@ -5,14 +5,13 @@ on: [push]
 jobs:
   python-tests:
     runs-on: ubuntu-latest
-    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}${{ matrix.valkey && ' (valkey)' || '' }}
+    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
 
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         django-version: ["4.2", "5.2", "6.0"]
-        valkey: [false, true]
         exclude:
           # -------------------------------------------------
           # django 6.0 requires python >=3.12
@@ -33,11 +32,6 @@ jobs:
           # -------------------------------------------------
           - python-version: "3.14"
             django-version: "4.2"
-          # -------------------------------------------------
-          # valkey requires python >=3.10
-          # -------------------------------------------------
-          - python-version: "3.9"
-            valkey: true
     services:
       redis:
         image: redis:7.4.1
@@ -66,7 +60,7 @@ jobs:
 
       - name: Install package and dependencies
         run: |
-          if [ "${{ matrix.valkey }}" = "false" ]; then
+          if [ "${{ matrix.python-version }}" = "3.9" ]; then
             pip install .[dev]
           else
             pip install .[dev,valkey]
@@ -95,5 +89,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: >
-            unittests,python-${{ matrix.python-version }},django-${{ matrix.django-version }}${{ matrix.valkey && ',valkey' || '' }}
+            unittests,python-${{ matrix.python-version }},django-${{ matrix.django-version }}
           fail_ci_if_error: true

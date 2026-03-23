@@ -240,9 +240,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install base package and development dependencies
 make install
 
-# Or with Valkey support
-INSTALL_VALKEY=true make install
-
 # Or manually
 pip install -e .
 pip install -r requirements.txt
@@ -254,9 +251,6 @@ pip install -r requirements.txt
 # Default setup with Python 3.10
 make docker_up
 
-# Or with Valkey support
-INSTALL_VALKEY=true make docker_up
-
 # Or with different Python version
 PYTHON_VERSION=3.11 make docker_up
 
@@ -265,7 +259,6 @@ make docker_shell
 ```
 
 **Environment Variables:**
-- `INSTALL_VALKEY=true` - Install and enable optional Valkey support
 - `PYTHON_VERSION=3.11` - Use specific Python version for Docker (default: 3.10)
 
 ### 3. Set Up Example Project
@@ -305,9 +298,6 @@ by invoking pytest directly:
 # Test in Docker container
 make test_docker
 
-# Test with Valkey support enabled
-INSTALL_VALKEY=true make test_docker
-
 # Test with specific Python version
 PYTHON_VERSION=3.11 make test_docker
 
@@ -315,4 +305,4 @@ PYTHON_VERSION=3.11 make test_docker
 make test_local
 ```
 
-**Note:** When `INSTALL_VALKEY=true` is set, the docker image will include optional Valkey support automatically.
+**Note:** When using python 3.10 or greater you can enable valkey support by using the django-valkey package
