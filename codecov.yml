@@ -26,3 +26,4 @@ ignore:
   - "docs/"
   - "*.md"
   - "dj_cache_panel/panel.py"
+  - "dj_cache_panel/conf.py"
