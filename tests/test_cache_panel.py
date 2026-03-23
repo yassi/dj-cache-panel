@@ -7,7 +7,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from dj_cache_panel import cache_panel
-from dj_cache_panel.cache_panel import get_cache_panel
+from dj_cache_panel.cache_panel import get_cache_panel, GenericCachePanel
 from example_project.backends import ExamplePanel
 
 EXAMPLE_DUMMY_BACKEND = "example_project.backends.ExampleDummyCache"
@@ -61,3 +61,10 @@ class TestGetCachePanelDynamicImport(SimpleTestCase):
 
         self.assertIn("Failed to import panel class", str(ctx.exception))
         self.assertIn("invalid module path", str(ctx.exception))
+
+    def test_generic_panel_fallback(self):
+        """If no panel class is found for a backend, a generic panel is returned."""
+        with patch.dict(cache_panel.BACKEND_PANEL_MAP, {}):
+            panel = get_cache_panel("example_dynamic_panel")
+            self.assertIsInstance(panel, GenericCachePanel)
+            self.assertEqual(panel.cache_name, "example_dynamic_panel")
