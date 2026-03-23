@@ -64,7 +64,7 @@ class TestGetCachePanelDynamicImport(SimpleTestCase):
 
     def test_generic_panel_fallback(self):
         """If no panel class is found for a backend, a generic panel is returned."""
-        with patch.dict(cache_panel.BACKEND_PANEL_MAP, {}):
+        with patch.dict(cache_panel.BACKEND_PANEL_MAP, {}, clear=True):
             panel = get_cache_panel("example_dynamic_panel")
             self.assertIsInstance(panel, GenericCachePanel)
             self.assertEqual(panel.cache_name, "example_dynamic_panel")

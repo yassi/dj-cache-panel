@@ -6,6 +6,18 @@ This configuration enables pytest-django to work with Django TestCase classes.
 
 import os
 import sys
+
+# tests/base.py reads REDIS_HOST / MEMCACHED_HOST / VALKEY_HOST at import time.
+# Inside a Compose dev container, bare ``pytest`` must use service DNS names.
+if os.path.exists("/.dockerenv"):
+    for _key, _default in (
+        ("REDIS_HOST", "redis"),
+        ("VALKEY_HOST", "valkey"),
+        ("MEMCACHED_HOST", "memcached"),
+    ):
+        if _key not in os.environ:
+            os.environ[_key] = _default
+
 import django
 from django.conf import settings
 
